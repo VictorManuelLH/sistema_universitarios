@@ -1,0 +1,58 @@
+/* ============================================
+   Variables CSS del Sistema Universitario
+   Paleta de colores y variables globales
+   ============================================ */
+
+:root {
+  /* Colores principales */
+  --color-primary: #2d6a4f;
+  --color-primary-dark: #1b4332;
+  --color-primary-light: #40916c;
+  --color-primary-bg: #d8f3dc;
+
+  /* Colores de estado */
+  --color-success: #2d6a4f;
+  --color-danger: #d62828;
+  --color-warning: #ffc107;
+  --color-info: #0dcaf0;
+
+  /* Colores de fondo */
+  --color-bg-light: #f8f9fa;
+  --color-bg-white: #ffffff;
+  --color-bg-sidebar: #2d6a4f;
+
+  /* Colores de texto */
+  --color-text-primary: #212529;
+  --color-text-secondary: #6c757d;
+  --color-text-white: #ffffff;
+  --color-text-muted: #868e96;
+
+  /* Bordes */
+  --color-border: #dee2e6;
+  --color-border-light: #e9ecef;
+
+  /* Sidebar */
+  --sidebar-width: 240px;
+  --sidebar-bg: #2d6a4f;
+  --sidebar-hover: #1b4332;
+  --sidebar-active: #1b4332;
+
+  /* Header */
+  --header-height: 65px;
+  --header-bg: #ffffff;
+  --header-border: #dee2e6;
+
+  /* Sombras */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+  /* Border radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+
+  /* Transiciones */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+}
