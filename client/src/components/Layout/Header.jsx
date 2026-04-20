@@ -114,6 +114,8 @@ const Header = ({ onToggleSidebar }) => {
         <div ref={notifRef} style={{ position: 'relative' }}>
           <button
             onClick={() => setShowNotif(v => !v)}
+            aria-label="Notificaciones"
+            aria-expanded={showNotif}
             style={{
               background: 'rgba(255,255,255,0.15)',
               border: 'none',

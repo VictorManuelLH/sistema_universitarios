@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Component } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import MainLayout from './components/Layout/MainLayout';
 import Login from './pages/Login';
@@ -20,13 +21,34 @@ import GestionMaterias from './pages/admin/GestionMaterias';
 import EvaluacionesAdmin from './pages/admin/EvaluacionesAdmin';
 import NotFound from './pages/NotFound';
 
-// Ruta protegida: redirige a /login si no está autenticado
+class ErrorBoundary extends Component {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: 12 }}>
+          <h4>Algo salió mal</h4>
+          <p className="text-muted">Ocurrió un error inesperado.</p>
+          <button className="btn btn-primary" onClick={() => this.setState({ hasError: false })}>
+            Intentar de nuevo
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
-// Ruta protegida por rol: redirige a / si el rol no coincide
 const RoleRoute = ({ role, children }) => {
   const { userRole } = useAuth();
   return userRole === role ? children : <Navigate to="/" replace />;
@@ -79,11 +101,13 @@ function AppRoutes() {
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </Router>
+    </ErrorBoundary>
   );
 }
 
