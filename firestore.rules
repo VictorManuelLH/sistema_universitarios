@@ -1,0 +1,107 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function getRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isAuth() && getRole() == 'admin';
+    }
+
+    function isProfesor() {
+      return isAuth() && getRole() == 'profesor';
+    }
+
+    // Usuarios: todos los autenticados leen (necesario para mostrar nombres en la UI)
+    // Solo admin puede escribir
+    match /users/{uid} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // Materias: todos los autenticados leen, solo admin escribe
+    match /materias/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // Asistencias
+    match /asistencias/{id} {
+      // Alumno solo lee las suyas; profesor y admin leen todas
+      allow read: if isAuth() && (
+        resource.data.alumno == request.auth.uid ||
+        isProfesor() ||
+        isAdmin()
+      );
+      // Solo el alumno puede crear su propia asistencia (no puede registrar por otro)
+      allow create: if isAuth() && request.resource.data.alumno == request.auth.uid;
+      // Profesor solo actualiza asistencias de materias que él imparte; admin actualiza cualquiera
+      allow update: if isAuth() && (
+        (isProfesor() && get(/databases/$(database)/documents/materias/$(resource.data.materia)).data.profesor == request.auth.uid) ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Evaluaciones
+    match /evaluaciones/{id} {
+      // Alumno ve las suyas; profesor y admin ven todas
+      allow read: if isAuth() && (
+        resource.data.alumno == request.auth.uid ||
+        isProfesor() ||
+        isAdmin()
+      );
+      // Alumno solo puede crear evaluaciones a su propio nombre
+      allow create: if isAuth() && request.resource.data.alumno == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // Reportes
+    match /reportes/{id} {
+      // Alumno ve los suyos; profesor y admin ven todos
+      allow read: if isAuth() && (
+        resource.data.alumno == request.auth.uid ||
+        isProfesor() ||
+        isAdmin()
+      );
+      // Alumno solo puede crear reportes a su propio nombre
+      allow create: if isAuth() && request.resource.data.alumno == request.auth.uid;
+      allow update: if isAuth() && (isProfesor() || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Reportes de lectura
+    match /reportesLectura/{id} {
+      // Alumno ve los suyos; profesor y admin ven todos
+      allow read: if isAuth() && (
+        resource.data.alumno == request.auth.uid ||
+        isProfesor() ||
+        isAdmin()
+      );
+      // Alumno solo puede crear reportes a su propio nombre
+      allow create: if isAuth() && request.resource.data.alumno == request.auth.uid;
+      allow update: if isAuth() && (isProfesor() || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Lineamientos: solo lectura para todos los auth, admin escribe
+    match /lineamientos/{id} {
+      allow read: if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // Notificaciones: cada usuario gestiona solo las suyas; admin puede crear para cualquiera
+    match /notificaciones/{id} {
+      allow read: if isAuth() && (resource.data.usuario == request.auth.uid || isAdmin());
+      allow create: if isAdmin();
+      allow update, delete: if isAuth() && (resource.data.usuario == request.auth.uid || isAdmin());
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Form, Button, Alert } from 'react-bootstrap';
-import { Eye, EyeOff, LogIn, CheckCircle, GraduationCap, UserCog } from 'lucide-react';
+import { Eye, EyeOff, LogIn, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
@@ -10,7 +10,6 @@ const Login = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('alumno');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,13 +26,7 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const data = await login(email, password);
-      // Verificar que el rol coincida
-      if (data.role !== role) {
-        setError(`Las credenciales no corresponden a un ${role}.`);
-        setLoading(false);
-        return;
-      }
+      await login(email, password);
       setSuccess(true);
       setTimeout(() => {
         navigate('/');
@@ -114,29 +107,6 @@ const Login = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       size="lg"
                     />
-                  </Form.Group>
-
-                  {/* Selector de rol */}
-                  <Form.Group className="mb-3">
-                    <Form.Label className="fw-semibold">Tipo de usuario</Form.Label>
-                    <div className="role-selector">
-                      <button
-                        type="button"
-                        className={`role-option ${role === 'alumno' ? 'active' : ''}`}
-                        onClick={() => setRole('alumno')}
-                      >
-                        <GraduationCap size={20} />
-                        Alumno
-                      </button>
-                      <button
-                        type="button"
-                        className={`role-option ${role === 'profesor' ? 'active' : ''}`}
-                        onClick={() => setRole('profesor')}
-                      >
-                        <UserCog size={20} />
-                        Profesor
-                      </button>
-                    </div>
                   </Form.Group>
 
                   <Form.Group className="mb-4">

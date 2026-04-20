@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Spinner } from 'react-bootstrap';
 import { CheckCircle, AlertTriangle, ClipboardCheck, BookOpen } from 'lucide-react';
-import api from '../utils/api';
+import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const Lineamientos = () => {
   const [lineamientos, setLineamientos] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/lineamientos')
-      .then(setLineamientos)
-      .finally(() => setLoading(false));
+    const cargar = async () => {
+      const snap = await getDocs(query(collection(db, 'lineamientos'), orderBy('categoria')));
+      setLineamientos(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setLoading(false);
+    };
+    cargar();
   }, []);
 
   const lineamientosAsistencias = lineamientos.filter(l => l.categoria === 'asistencias');
@@ -40,7 +44,7 @@ const Lineamientos = () => {
           Lineamientos de Asistencias
         </div>
         {lineamientosAsistencias.map((item) => (
-          <div key={item._id} className="lineamiento-item">
+          <div key={item.id} className="lineamiento-item">
             {renderIcon(item.tipo)}
             <div>
               <strong>{item.titulo}</strong> {item.descripcion}
@@ -56,7 +60,7 @@ const Lineamientos = () => {
           Lineamientos de Calificaciones
         </div>
         {lineamientosCalificaciones.map((item) => (
-          <div key={item._id} className="lineamiento-item">
+          <div key={item.id} className="lineamiento-item">
             {renderIcon(item.tipo)}
             <div>
               <strong>{item.titulo}</strong> {item.descripcion}

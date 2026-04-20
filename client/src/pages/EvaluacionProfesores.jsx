@@ -2,18 +2,56 @@ import { useState, useEffect } from 'react';
 import { Row, Col, Button, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { Star, CheckCircle } from 'lucide-react';
-import api from '../utils/api';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useAuth } from '../context/AuthContext';
 
 const EvaluacionProfesores = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [profesores, setProfesores] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/evaluaciones/profesores')
-      .then(setProfesores)
-      .finally(() => setLoading(false));
-  }, []);
+    if (!user?.uid) return;
+    const cargar = async () => {
+      // Materias donde está inscrito el alumno
+      const materiasSnap = await getDocs(
+        query(collection(db, 'materias'), where('alumnos', 'array-contains', user.uid))
+      );
+      const materias = materiasSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Evaluaciones ya realizadas por este alumno
+      const evalsSnap = await getDocs(
+        query(collection(db, 'evaluaciones'), where('alumno', '==', user.uid))
+      );
+      const evaluadas = new Set(evalsSnap.docs.map(d => `${d.data().profesor}_${d.data().materia}`));
+
+      // UIDs únicos de profesores
+      const profUids = [...new Set(materias.map(m => m.profesor).filter(Boolean))];
+
+      // Nombres de profesores
+      const nombresMap = {};
+      await Promise.all(profUids.map(async (uid) => {
+        const snap = await getDocs(query(collection(db, 'users'), where('__name__', '==', uid)));
+        if (!snap.empty) nombresMap[uid] = snap.docs[0].data().name;
+      }));
+
+      const lista = materias
+        .filter(m => m.profesor)
+        .map(m => ({
+          uid: m.profesor,
+          nombre: nombresMap[m.profesor] || 'Profesor',
+          materia: m.nombre,
+          materiaId: m.id,
+          evaluado: evaluadas.has(`${m.profesor}_${m.id}`)
+        }));
+
+      setProfesores(lista);
+      setLoading(false);
+    };
+    cargar();
+  }, [user?.uid]);
 
   if (loading) return <div className="text-center py-5"><Spinner animation="border" /></div>;
 
@@ -24,30 +62,24 @@ const EvaluacionProfesores = () => {
         Evalúa el desempeño de tus profesores para contribuir a la mejora continua de la calidad educativa.
       </p>
 
-      {/* Grid de profesores */}
       <Row>
         {profesores.map((profesor) => (
-          <Col key={`${profesor._id}-${profesor.materiaId}`} md={6} className="mb-4">
+          <Col key={`${profesor.uid}-${profesor.materiaId}`} md={6} className="mb-4">
             <div className="profesor-card">
               <div className="profesor-card-header">
                 <div>
                   <div className="profesor-nombre">{profesor.nombre}</div>
                   <div className="profesor-materia">{profesor.materia}</div>
                 </div>
-                {profesor.evaluado && (
-                  <CheckCircle size={24} className="text-success" />
-                )}
+                {profesor.evaluado && <CheckCircle size={24} className="text-success" />}
               </div>
-
               {profesor.evaluado ? (
-                <div className="evaluacion-completada">
-                  Evaluación completada
-                </div>
+                <div className="evaluacion-completada">Evaluación completada</div>
               ) : (
                 <Button
                   variant="success"
                   className="btn-evaluar"
-                  onClick={() => navigate(`/evaluacion-profesores/${profesor._id}?materia=${profesor.materiaId}`)}
+                  onClick={() => navigate(`/evaluacion-profesores/${profesor.uid}?materia=${profesor.materiaId}`)}
                 >
                   Evaluar Profesor
                 </Button>
@@ -57,7 +89,6 @@ const EvaluacionProfesores = () => {
         ))}
       </Row>
 
-      {/* Panel informativo */}
       <div className="importancia-card">
         <div className="importancia-card-title">
           <Star size={22} className="text-warning" />

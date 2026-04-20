@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, LogOut, Menu, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../utils/api';
+import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 const Header = ({ onToggleSidebar }) => {
   const { logout, user, userRole } = useAuth();
@@ -18,16 +19,19 @@ const Header = ({ onToggleSidebar }) => {
     return () => clearInterval(timer);
   }, []);
 
-  // Cargar notificaciones
-  const cargarNotificaciones = () => {
-    api.get('/notificaciones').then(setNotificaciones).catch(() => {});
-  };
-
+  // Notificaciones en tiempo real con Firestore listener
   useEffect(() => {
-    cargarNotificaciones();
-    const interval = setInterval(cargarNotificaciones, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    if (!user?.uid) return;
+    const q = query(
+      collection(db, 'notificaciones'),
+      where('usuario', '==', user.uid),
+      orderBy('createdAt', 'desc')
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      setNotificaciones(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, [user?.uid]);
 
   // Cerrar dropdown al hacer click fuera
   useEffect(() => {
@@ -44,8 +48,7 @@ const Header = ({ onToggleSidebar }) => {
 
   const marcarLeida = async (n) => {
     if (!n.leida) {
-      await api.put(`/notificaciones/${n._id}/leer`, {});
-      setNotificaciones(prev => prev.map(x => x._id === n._id ? { ...x, leida: true } : x));
+      await updateDoc(doc(db, 'notificaciones', n.id), { leida: true });
     }
     if (n.link) {
       setShowNotif(false);
@@ -54,8 +57,11 @@ const Header = ({ onToggleSidebar }) => {
   };
 
   const marcarTodasLeidas = async () => {
-    await api.put('/notificaciones/leer-todas', {});
-    setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })));
+    const batch = writeBatch(db);
+    notificaciones.filter(n => !n.leida).forEach(n => {
+      batch.update(doc(db, 'notificaciones', n.id), { leida: true });
+    });
+    await batch.commit();
   };
 
   const formatTime = (date) => {
@@ -179,7 +185,7 @@ const Header = ({ onToggleSidebar }) => {
                 ) : (
                   notificaciones.map(n => (
                     <div
-                      key={n._id}
+                      key={n.id}
                       onClick={() => marcarLeida(n)}
                       style={{
                         padding: '12px 16px',

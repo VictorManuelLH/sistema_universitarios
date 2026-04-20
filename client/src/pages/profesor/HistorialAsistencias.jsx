@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Row, Col, Form, Table, Badge, Button, Alert, Spinner, Pagination } from 'react-bootstrap';
 import { Search, CalendarDays, FileSpreadsheet, Pencil, Check, X } from 'lucide-react';
-import api from '../../utils/api';
+import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../firebase';
+import { useAuth } from '../../context/AuthContext';
 
 const POR_PAGINA = 10;
 
 const HistorialAsistencias = () => {
+  const { user } = useAuth();
   const [materias, setMaterias] = useState([]);
   const [historial, setHistorial] = useState([]);
   const [fechaInicial, setFechaInicial] = useState(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - 3);
+    const d = new Date(); d.setMonth(d.getMonth() - 3);
     return d.toISOString().split('T')[0];
   });
   const [fechaFinal, setFechaFinal] = useState(() => new Date().toISOString().split('T')[0]);
@@ -23,55 +25,61 @@ const HistorialAsistencias = () => {
   const [pagina, setPagina] = useState(1);
 
   useEffect(() => {
-    api.get('/materias/profesor/mis-materias').then(setMaterias);
-  }, []);
+    if (!user?.uid) return;
+    const cargar = async () => {
+      const materiasSnap = await getDocs(query(collection(db, 'materias'), where('profesor', '==', user.uid)));
+      const mats = materiasSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setMaterias(mats);
 
-  // Cargar historial de todas las materias del profesor en paralelo
-  useEffect(() => {
-    if (materias.length === 0) return;
-    const fetchHistorial = async () => {
-      setLoading(true);
-      try {
-        const resultados = await Promise.all(
-          materias.map(materia =>
-            api.get(`/asistencias/materia/${materia._id}`)
-              .then(records => records.map(r => ({ ...r, materiaNombre: materia.nombre })))
-              .catch(() => [])
-          )
-        );
-        setHistorial(resultados.flat());
-      } finally {
-        setLoading(false);
-      }
+      if (mats.length === 0) { setLoading(false); return; }
+
+      const materiaIds = mats.map(m => m.id);
+      const [asistSnap, usersSnap] = await Promise.all([
+        getDocs(query(collection(db, 'asistencias'), where('materia', 'in', materiaIds))),
+        getDocs(collection(db, 'users'))
+      ]);
+
+      const usersMap = {};
+      usersSnap.docs.forEach(d => { usersMap[d.id] = d.data(); });
+      const materiasMap = {};
+      mats.forEach(m => { materiasMap[m.id] = m.nombre; });
+
+      const data = asistSnap.docs.map(d => {
+        const a = d.data();
+        return {
+          id: d.id,
+          ...a,
+          alumnoNombre: usersMap[a.alumno]?.name || '—',
+          alumnoMatricula: usersMap[a.alumno]?.matricula || '—',
+          materiaNombre: materiasMap[a.materia] || '—'
+        };
+      });
+      setHistorial(data);
+      setLoading(false);
     };
-    fetchHistorial();
-  }, [materias]);
+    cargar();
+  }, [user?.uid]);
 
-  // Reiniciar paginación al cambiar filtros
-  useEffect(() => {
-    setPagina(1);
-  }, [fechaInicial, fechaFinal, materiaFiltro, busquedaAlumno]);
+  useEffect(() => { setPagina(1); }, [fechaInicial, fechaFinal, materiaFiltro, busquedaAlumno]);
 
-  // Filtrar registros
+  const toDate = (v) => v?.toDate ? v.toDate() : new Date(v);
+
   const registrosFiltrados = historial.filter(r => {
-    const fecha = new Date(r.fecha).toISOString().split('T')[0];
+    const fecha = toDate(r.fecha).toISOString().split('T')[0];
     if (fechaInicial && fecha < fechaInicial) return false;
     if (fechaFinal && fecha > fechaFinal) return false;
     if (materiaFiltro && r.materia !== materiaFiltro) return false;
     if (busquedaAlumno) {
       const busq = busquedaAlumno.toLowerCase();
-      const nombre = r.alumno?.name?.toLowerCase() || '';
-      const matricula = r.alumno?.matricula || '';
-      return nombre.includes(busq) || matricula.includes(busq);
+      return r.alumnoNombre.toLowerCase().includes(busq) || r.alumnoMatricula.includes(busq);
     }
     return true;
-  });
+  }).sort((a, b) => toDate(b.fecha) - toDate(a.fecha));
 
-  // Guardar edicion de estado
   const guardarEdicion = async (id) => {
     try {
-      await api.put(`/asistencias/estado/${id}`, { estado: editandoEstado });
-      setHistorial(prev => prev.map(r => r._id === id ? { ...r, estado: editandoEstado } : r));
+      await updateDoc(doc(db, 'asistencias', id), { estado: editandoEstado });
+      setHistorial(prev => prev.map(r => r.id === id ? { ...r, estado: editandoEstado } : r));
       setEditandoId(null);
       setMensaje({ tipo: 'success', texto: 'Estado actualizado correctamente.' });
     } catch (err) {
@@ -79,14 +87,13 @@ const HistorialAsistencias = () => {
     }
   };
 
-  // Exportar a CSV
   const exportarCSV = () => {
     const encabezados = ['Fecha', 'Matricula', 'Alumno', 'Materia', 'Estado'];
     const filas = registrosFiltrados.map(r => [
-      new Date(r.fecha).toLocaleDateString('es-MX'),
-      r.alumno?.matricula || '',
-      r.alumno?.name || '',
-      r.materiaNombre || '',
+      toDate(r.fecha).toLocaleDateString('es-MX'),
+      r.alumnoMatricula,
+      r.alumnoNombre,
+      r.materiaNombre,
       r.estado
     ]);
     const csv = [encabezados, ...filas].map(f => f.join(',')).join('\n');
@@ -99,22 +106,15 @@ const HistorialAsistencias = () => {
     URL.revokeObjectURL(url);
   };
 
-  const formatFecha = (fecha) => {
-    return new Date(fecha).toLocaleDateString('es-MX', {
-      weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
-    });
-  };
+  const formatFecha = (fecha) =>
+    toDate(fecha).toLocaleDateString('es-MX', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
 
   const renderEstadoBadge = (estado) => {
     switch (estado) {
-      case 'presente':
-        return <Badge bg="success" className="badge-asistencia">Presente</Badge>;
-      case 'falta':
-        return <Badge bg="danger" className="badge-asistencia">Falta</Badge>;
-      case 'retardo':
-        return <Badge bg="warning" text="dark" className="badge-asistencia">Retardo</Badge>;
-      default:
-        return <Badge bg="secondary" className="badge-asistencia">{estado}</Badge>;
+      case 'presente': return <Badge bg="success" className="badge-asistencia">Presente</Badge>;
+      case 'falta': return <Badge bg="danger" className="badge-asistencia">Falta</Badge>;
+      case 'retardo': return <Badge bg="warning" text="dark" className="badge-asistencia">Retardo</Badge>;
+      default: return <Badge bg="secondary" className="badge-asistencia">{estado}</Badge>;
     }
   };
 
@@ -124,55 +124,31 @@ const HistorialAsistencias = () => {
   return (
     <div>
       <h2 className="page-title">Historial de Asistencias</h2>
-      <p className="page-subtitle">
-        Consulta y edita el historial de asistencias de tus alumnos.
-      </p>
+      <p className="page-subtitle">Consulta y edita el historial de asistencias de tus alumnos.</p>
 
-      {mensaje && (
-        <Alert variant={mensaje.tipo} dismissible onClose={() => setMensaje(null)}>
-          {mensaje.texto}
-        </Alert>
-      )}
+      {mensaje && <Alert variant={mensaje.tipo} dismissible onClose={() => setMensaje(null)}>{mensaje.texto}</Alert>}
 
-      {/* Filtros de búsqueda */}
       <div className="filtros-card">
-        <div className="filtros-title">
-          <Search size={22} />
-          Filtros de Búsqueda
-        </div>
-
+        <div className="filtros-title"><Search size={22} />Filtros de Búsqueda</div>
         <Row className="align-items-end">
           <Col md={3} className="mb-3">
             <Form.Group>
               <Form.Label className="fw-semibold">Fecha Inicial</Form.Label>
-              <Form.Control
-                type="date"
-                value={fechaInicial}
-                onChange={(e) => setFechaInicial(e.target.value)}
-              />
+              <Form.Control type="date" value={fechaInicial} onChange={e => setFechaInicial(e.target.value)} />
             </Form.Group>
           </Col>
           <Col md={3} className="mb-3">
             <Form.Group>
               <Form.Label className="fw-semibold">Fecha Final</Form.Label>
-              <Form.Control
-                type="date"
-                value={fechaFinal}
-                onChange={(e) => setFechaFinal(e.target.value)}
-              />
+              <Form.Control type="date" value={fechaFinal} onChange={e => setFechaFinal(e.target.value)} />
             </Form.Group>
           </Col>
           <Col md={3} className="mb-3">
             <Form.Group>
               <Form.Label className="fw-semibold">Materia</Form.Label>
-              <Form.Select
-                value={materiaFiltro}
-                onChange={(e) => setMateriaFiltro(e.target.value)}
-              >
+              <Form.Select value={materiaFiltro} onChange={e => setMateriaFiltro(e.target.value)}>
                 <option value="">Todas las materias</option>
-                {materias.map((m) => (
-                  <option key={m._id} value={m._id}>{m.nombre}</option>
-                ))}
+                {materias.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
               </Form.Select>
             </Form.Group>
           </Col>
@@ -180,13 +156,7 @@ const HistorialAsistencias = () => {
             <Form.Group>
               <Form.Label className="fw-semibold">Buscar Alumno</Form.Label>
               <div className="position-relative">
-                <Form.Control
-                  type="text"
-                  placeholder="Nombre o matrícula"
-                  value={busquedaAlumno}
-                  onChange={(e) => setBusquedaAlumno(e.target.value)}
-                  style={{ paddingLeft: '36px' }}
-                />
+                <Form.Control type="text" placeholder="Nombre o matrícula" value={busquedaAlumno} onChange={e => setBusquedaAlumno(e.target.value)} style={{ paddingLeft: '36px' }} />
                 <Search size={16} className="position-absolute text-muted" style={{ left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
               </div>
             </Form.Group>
@@ -194,85 +164,51 @@ const HistorialAsistencias = () => {
         </Row>
       </div>
 
-      {/* Tabla de registros */}
       <div className="tabla-asistencia mt-4">
         <div className="p-3 pb-0 d-flex justify-content-between align-items-center">
-          <div className="filtros-title mb-0">
-            <CalendarDays size={22} />
-            Registros de Asistencia
-          </div>
+          <div className="filtros-title mb-0"><CalendarDays size={22} />Registros de Asistencia</div>
           <Button variant="outline-secondary" size="sm" className="d-flex align-items-center gap-2" onClick={exportarCSV}>
-            <FileSpreadsheet size={16} />
-            Exportar CSV
+            <FileSpreadsheet size={16} />Exportar CSV
           </Button>
         </div>
 
         {loading ? (
-          <div className="text-center py-5">
-            <Spinner animation="border" />
-          </div>
+          <div className="text-center py-5"><Spinner animation="border" /></div>
         ) : (
           <Table responsive hover>
             <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Matrícula</th>
-                <th>Alumno</th>
-                <th>Estado</th>
-                <th className="text-end">Acciones</th>
-              </tr>
+              <tr><th>Fecha</th><th>Matrícula</th><th>Alumno</th><th>Estado</th><th className="text-end">Acciones</th></tr>
             </thead>
             <tbody>
-              {registrosPaginados.map((registro) => (
-                <tr key={registro._id}>
+              {registrosPaginados.map(registro => (
+                <tr key={registro.id}>
                   <td>{formatFecha(registro.fecha)}</td>
-                  <td className="fw-semibold">{registro.alumno?.matricula}</td>
-                  <td>{registro.alumno?.name}</td>
+                  <td className="fw-semibold">{registro.alumnoMatricula}</td>
+                  <td>{registro.alumnoNombre}</td>
                   <td>
-                    {editandoId === registro._id ? (
-                      <Form.Select
-                        size="sm"
-                        value={editandoEstado}
-                        onChange={(e) => setEditandoEstado(e.target.value)}
-                        style={{ width: '140px', display: 'inline-block' }}
-                      >
+                    {editandoId === registro.id ? (
+                      <Form.Select size="sm" value={editandoEstado} onChange={e => setEditandoEstado(e.target.value)} style={{ width: '140px', display: 'inline-block' }}>
                         <option value="presente">Presente</option>
                         <option value="falta">Falta</option>
                         <option value="retardo">Retardo</option>
                       </Form.Select>
-                    ) : (
-                      renderEstadoBadge(registro.estado)
-                    )}
+                    ) : renderEstadoBadge(registro.estado)}
                   </td>
                   <td className="text-end">
-                    {editandoId === registro._id ? (
+                    {editandoId === registro.id ? (
                       <div className="d-flex gap-2 justify-content-end">
-                        <Button variant="success" size="sm" onClick={() => guardarEdicion(registro._id)}>
-                          <Check size={14} />
-                        </Button>
-                        <Button variant="outline-secondary" size="sm" onClick={() => setEditandoId(null)}>
-                          <X size={14} />
-                        </Button>
+                        <Button variant="success" size="sm" onClick={() => guardarEdicion(registro.id)}><Check size={14} /></Button>
+                        <Button variant="outline-secondary" size="sm" onClick={() => setEditandoId(null)}><X size={14} /></Button>
                       </div>
                     ) : (
-                      <Button
-                        variant="outline-secondary"
-                        size="sm"
-                        className="d-flex align-items-center gap-1 ms-auto"
-                        onClick={() => { setEditandoId(registro._id); setEditandoEstado(registro.estado); }}
-                      >
-                        <Pencil size={14} />
-                        Editar
+                      <Button variant="outline-secondary" size="sm" className="d-flex align-items-center gap-1 ms-auto" onClick={() => { setEditandoId(registro.id); setEditandoEstado(registro.estado); }}>
+                        <Pencil size={14} />Editar
                       </Button>
                     )}
                   </td>
                 </tr>
               ))}
-              {registrosPaginados.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="text-center text-muted py-4">No hay registros.</td>
-                </tr>
-              )}
+              {registrosPaginados.length === 0 && <tr><td colSpan={5} className="text-center text-muted py-4">No hay registros.</td></tr>}
             </tbody>
           </Table>
         )}
@@ -283,9 +219,7 @@ const HistorialAsistencias = () => {
           <Pagination size="sm">
             <Pagination.Prev disabled={pagina === 1} onClick={() => setPagina(p => p - 1)} />
             {Array.from({ length: totalPaginas }, (_, i) => (
-              <Pagination.Item key={i + 1} active={pagina === i + 1} onClick={() => setPagina(i + 1)}>
-                {i + 1}
-              </Pagination.Item>
+              <Pagination.Item key={i + 1} active={pagina === i + 1} onClick={() => setPagina(i + 1)}>{i + 1}</Pagination.Item>
             ))}
             <Pagination.Next disabled={pagina === totalPaginas} onClick={() => setPagina(p => p + 1)} />
           </Pagination>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import api from '../utils/api';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
 import { Calendar } from 'lucide-react';
 
 const COLORS = [
@@ -62,21 +63,28 @@ const formatTime = (horario) => {
 };
 
 const Horario = () => {
-  const { userRole } = useAuth();
+  const { userRole, user } = useAuth();
   const [materias, setMaterias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const endpoint = userRole === 'alumno'
-      ? '/materias/alumno/mis-materias'
-      : '/materias/profesor/mis-materias';
-
-    api.get(endpoint)
-      .then(data => setMaterias(data))
-      .catch(err => setError(err.message || 'No se pudo cargar el horario.'))
-      .finally(() => setLoading(false));
-  }, [userRole]);
+    if (!user?.uid) return;
+    const cargar = async () => {
+      try {
+        const campo = userRole === 'alumno' ? 'alumnos' : 'profesor';
+        const op = userRole === 'alumno' ? 'array-contains' : '==';
+        const q = query(collection(db, 'materias'), where(campo, op, user.uid));
+        const snap = await getDocs(q);
+        setMaterias(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (err) {
+        setError(err.message || 'No se pudo cargar el horario.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    cargar();
+  }, [user?.uid, userRole]);
 
   const hours = [];
   for (let h = START_HOUR; h <= END_HOUR; h++) {
@@ -201,7 +209,7 @@ const Horario = () => {
 
                       return (
                         <div
-                          key={materia._id}
+                          key={materia.id}
                           style={{
                             position: 'absolute',
                             top: top + 2,
@@ -247,7 +255,7 @@ const Horario = () => {
               <div className="d-flex flex-wrap gap-3 align-items-center">
                 <span className="text-muted" style={{ fontSize: '0.8rem', fontWeight: 600 }}>Materias:</span>
                 {materias.map((materia, idx) => (
-                  <div key={materia._id} className="d-flex align-items-center gap-1">
+                  <div key={materia.id} className="d-flex align-items-center gap-1">
                     <div style={{
                       width: 11,
                       height: 11,

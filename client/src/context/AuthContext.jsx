@@ -1,55 +1,58 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import api from '../utils/api';
+import { auth, db } from '../firebase';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Al montar, verificar si hay token guardado
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      api.get('/auth/profile')
-        .then(userData => {
-          setUser(userData);
-          setIsAuthenticated(true);
-        })
-        .catch(() => {
-          localStorage.removeItem('token');
-        })
-        .finally(() => setLoading(false));
-    } else {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+        if (userDoc.exists()) {
+          setUser({ uid: firebaseUser.uid, email: firebaseUser.email, ...userDoc.data() });
+        } else {
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
       setLoading(false);
-    }
+    });
+    return unsubscribe;
   }, []);
 
   const login = async (email, password) => {
-    const data = await api.post('/auth/login', { email, password });
-    localStorage.setItem('token', data.token);
-    setUser(data);
-    setIsAuthenticated(true);
-    return data;
+    const { user: firebaseUser } = await signInWithEmailAndPassword(auth, email, password);
+    const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+    if (!userDoc.exists()) throw new Error('Usuario no encontrado en el sistema.');
+    const userData = { uid: firebaseUser.uid, email: firebaseUser.email, ...userDoc.data() };
+    setUser(userData);
+    return userData;
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
+  const logout = async () => {
+    await signOut(auth);
     setUser(null);
-    setIsAuthenticated(false);
   };
 
   const updateUser = (data) => setUser(prev => ({ ...prev, ...data }));
 
-  const userRole = user?.role || null;
-
-  if (loading) {
-    return null;
-  }
+  if (loading) return null;
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, userRole, login, logout, updateUser }}>
+    <AuthContext.Provider value={{
+      isAuthenticated: !!user,
+      user,
+      userRole: user?.role || null,
+      login,
+      logout,
+      updateUser
+    }}>
       {children}
     </AuthContext.Provider>
   );

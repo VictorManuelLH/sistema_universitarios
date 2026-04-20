@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Table, Button, Badge, Alert, Modal, Form, Row, Col, Spinner } from 'react-bootstrap';
 import { BookPlus, Pencil, Trash2, Users, X } from 'lucide-react';
-import api from '../../utils/api';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 const formVacio = { nombre: '', grupo: '', profesor: '', horario: '', alumnos: [] };
 
@@ -20,25 +21,27 @@ const GestionMaterias = () => {
   const [modalError, setModalError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    cargarDatos();
-  }, []);
+  useEffect(() => { cargarDatos(); }, []);
 
   const cargarDatos = async () => {
     try {
-      const [materiasData, usersData] = await Promise.all([
-        api.get('/materias'),
-        api.get('/users')
+      const [materiasSnap, usersSnap] = await Promise.all([
+        getDocs(query(collection(db, 'materias'), orderBy('nombre'))),
+        getDocs(collection(db, 'users'))
       ]);
-      setMaterias(materiasData);
-      setProfesores(usersData.filter(u => u.role === 'profesor'));
-      setAlumnosDisponibles(usersData.filter(u => u.role === 'alumno'));
+      const users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setMaterias(materiasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setProfesores(users.filter(u => u.role === 'profesor'));
+      setAlumnosDisponibles(users.filter(u => u.role === 'alumno'));
     } catch (err) {
       setMensaje({ tipo: 'danger', texto: err.message });
     } finally {
       setLoading(false);
     }
   };
+
+  const getNombreProfesor = (uid) => profesores.find(p => p.id === uid)?.name || '—';
+  const getNombreAlumno = (uid) => alumnosDisponibles.find(a => a.id === uid)?.name || uid;
 
   const abrirCrear = () => {
     setEditando(null);
@@ -54,9 +57,9 @@ const GestionMaterias = () => {
     setForm({
       nombre: materia.nombre,
       grupo: materia.grupo,
-      profesor: materia.profesor?._id || '',
+      profesor: materia.profesor || '',
       horario: materia.horario,
-      alumnos: materia.alumnos?.map(a => a._id) || []
+      alumnos: materia.alumnos || []
     });
     setAlumnoSearch('');
     setShowModal(true);
@@ -69,8 +72,8 @@ const GestionMaterias = () => {
 
   const handleEliminar = async () => {
     try {
-      await api.delete(`/materias/${materiaAEliminar._id}`);
-      setMaterias(prev => prev.filter(m => m._id !== materiaAEliminar._id));
+      await deleteDoc(doc(db, 'materias', materiaAEliminar.id));
+      setMaterias(prev => prev.filter(m => m.id !== materiaAEliminar.id));
       setMensaje({ tipo: 'success', texto: 'Materia eliminada correctamente.' });
     } catch (err) {
       setMensaje({ tipo: 'danger', texto: err.message });
@@ -91,31 +94,28 @@ const GestionMaterias = () => {
 
   const handleGuardar = async () => {
     setModalError('');
-    if (!form.nombre.trim()) {
-      setModalError('El nombre de la materia es obligatorio.');
-      return;
-    }
-    if (!form.grupo.trim()) {
-      setModalError('El grupo es obligatorio.');
-      return;
-    }
-    if (!form.horario.trim()) {
-      setModalError('El horario es obligatorio.');
-      return;
-    }
-    if (!form.profesor) {
-      setModalError('Debes asignar un profesor.');
-      return;
-    }
+    if (!form.nombre.trim()) return setModalError('El nombre de la materia es obligatorio.');
+    if (!form.grupo.trim()) return setModalError('El grupo es obligatorio.');
+    if (!form.horario.trim()) return setModalError('El horario es obligatorio.');
+    if (!form.profesor) return setModalError('Debes asignar un profesor.');
+
     setGuardando(true);
     try {
+      const data = {
+        nombre: form.nombre,
+        grupo: form.grupo,
+        horario: form.horario,
+        profesor: form.profesor,
+        alumnos: form.alumnos
+      };
+
       if (editando) {
-        const actualizada = await api.put(`/materias/${editando._id}`, form);
-        setMaterias(prev => prev.map(m => m._id === editando._id ? actualizada : m));
+        await updateDoc(doc(db, 'materias', editando.id), data);
+        setMaterias(prev => prev.map(m => m.id === editando.id ? { ...m, ...data } : m));
         setMensaje({ tipo: 'success', texto: 'Materia actualizada correctamente.' });
       } else {
-        const nueva = await api.post('/materias', form);
-        setMaterias(prev => [...prev, nueva]);
+        const ref = await addDoc(collection(db, 'materias'), { ...data, createdAt: serverTimestamp() });
+        setMaterias(prev => [...prev, { id: ref.id, ...data }]);
         setMensaje({ tipo: 'success', texto: 'Materia creada correctamente.' });
       }
       setShowModal(false);
@@ -130,11 +130,6 @@ const GestionMaterias = () => {
     a.name.toLowerCase().includes(alumnoSearch.toLowerCase()) ||
     (a.matricula || '').toLowerCase().includes(alumnoSearch.toLowerCase())
   );
-
-  const getNombreAlumno = (id) => {
-    const a = alumnosDisponibles.find(a => a._id === id);
-    return a ? a.name : id;
-  };
 
   if (loading) return <div className="text-center py-5"><Spinner animation="border" /></div>;
 
@@ -170,10 +165,10 @@ const GestionMaterias = () => {
           </thead>
           <tbody>
             {materias.map(m => (
-              <tr key={m._id}>
+              <tr key={m.id}>
                 <td className="fw-semibold">{m.nombre}</td>
                 <td>{m.grupo}</td>
-                <td>{m.profesor?.name || <span className="text-muted">—</span>}</td>
+                <td>{getNombreProfesor(m.profesor)}</td>
                 <td style={{ fontSize: '0.85rem' }}>{m.horario}</td>
                 <td>
                   <Badge bg="secondary" className="badge-asistencia">
@@ -183,18 +178,10 @@ const GestionMaterias = () => {
                 </td>
                 <td className="text-end">
                   <div className="d-flex gap-2 justify-content-end">
-                    <button
-                      className="action-btn action-btn-warning"
-                      title="Editar"
-                      onClick={() => abrirEditar(m)}
-                    >
+                    <button className="action-btn action-btn-warning" title="Editar" onClick={() => abrirEditar(m)}>
                       <Pencil size={16} />
                     </button>
-                    <button
-                      className="action-btn action-btn-danger"
-                      title="Eliminar"
-                      onClick={() => confirmarEliminar(m)}
-                    >
+                    <button className="action-btn action-btn-danger" title="Eliminar" onClick={() => confirmarEliminar(m)}>
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -203,9 +190,7 @@ const GestionMaterias = () => {
             ))}
             {materias.length === 0 && (
               <tr>
-                <td colSpan={6} className="text-center text-muted py-4">
-                  No hay materias registradas.
-                </td>
+                <td colSpan={6} className="text-center text-muted py-4">No hay materias registradas.</td>
               </tr>
             )}
           </tbody>
@@ -246,17 +231,13 @@ const GestionMaterias = () => {
             </Col>
             <Col md={12}>
               <Form.Label>Profesor</Form.Label>
-              <Form.Select
-                value={form.profesor}
-                onChange={e => setForm(p => ({ ...p, profesor: e.target.value }))}
-              >
+              <Form.Select value={form.profesor} onChange={e => setForm(p => ({ ...p, profesor: e.target.value }))}>
                 <option value="">Seleccionar profesor...</option>
                 {profesores.map(p => (
-                  <option key={p._id} value={p._id}>{p.name}</option>
+                  <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </Form.Select>
             </Col>
-
             <Col md={12}>
               <Form.Label>Alumnos inscritos</Form.Label>
               {form.alumnos.length > 0 && (
@@ -264,10 +245,7 @@ const GestionMaterias = () => {
                   {form.alumnos.map(id => (
                     <span key={id} className="badge bg-light text-dark border d-flex align-items-center gap-1" style={{ padding: '6px 10px' }}>
                       {getNombreAlumno(id)}
-                      <button
-                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#dc3545' }}
-                        onClick={() => toggleAlumno(id)}
-                      >
+                      <button style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#dc3545' }} onClick={() => toggleAlumno(id)}>
                         <X size={12} />
                       </button>
                     </span>
@@ -283,30 +261,24 @@ const GestionMaterias = () => {
               <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #dee2e6', borderRadius: '6px' }}>
                 {alumnosFiltrados.map(a => (
                   <div
-                    key={a._id}
-                    className={`d-flex justify-content-between align-items-center px-3 py-2 ${form.alumnos.includes(a._id) ? 'bg-light' : ''}`}
+                    key={a.id}
+                    className={`d-flex justify-content-between align-items-center px-3 py-2 ${form.alumnos.includes(a.id) ? 'bg-light' : ''}`}
                     style={{ cursor: 'pointer', borderBottom: '1px solid #f0f0f0', fontSize: '0.9rem' }}
-                    onClick={() => toggleAlumno(a._id)}
+                    onClick={() => toggleAlumno(a.id)}
                   >
                     <span>{a.name} {a.matricula ? `(${a.matricula})` : ''}</span>
-                    {form.alumnos.includes(a._id) && (
-                      <Badge bg="success" style={{ fontSize: '0.7rem' }}>Inscrito</Badge>
-                    )}
+                    {form.alumnos.includes(a.id) && <Badge bg="success" style={{ fontSize: '0.7rem' }}>Inscrito</Badge>}
                   </div>
                 ))}
                 {alumnosFiltrados.length === 0 && (
-                  <div className="text-center text-muted py-3" style={{ fontSize: '0.85rem' }}>
-                    No se encontraron alumnos.
-                  </div>
+                  <div className="text-center text-muted py-3" style={{ fontSize: '0.85rem' }}>No se encontraron alumnos.</div>
                 )}
               </div>
             </Col>
           </Row>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="outline-secondary" onClick={() => setShowModal(false)}>
-            Cancelar
-          </Button>
+          <Button variant="outline-secondary" onClick={() => setShowModal(false)}>Cancelar</Button>
           <Button variant="success" onClick={handleGuardar} disabled={guardando}>
             {guardando ? 'Guardando...' : editando ? 'Guardar cambios' : 'Crear materia'}
           </Button>
@@ -322,12 +294,8 @@ const GestionMaterias = () => {
           ¿Estás seguro de que deseas eliminar <strong>{materiaAEliminar?.nombre}</strong> - Grupo {materiaAEliminar?.grupo}? Esta acción no se puede deshacer.
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="outline-secondary" onClick={() => setShowDeleteModal(false)}>
-            Cancelar
-          </Button>
-          <Button variant="danger" onClick={handleEliminar}>
-            Eliminar
-          </Button>
+          <Button variant="outline-secondary" onClick={() => setShowDeleteModal(false)}>Cancelar</Button>
+          <Button variant="danger" onClick={handleEliminar}>Eliminar</Button>
         </Modal.Footer>
       </Modal>
     </div>

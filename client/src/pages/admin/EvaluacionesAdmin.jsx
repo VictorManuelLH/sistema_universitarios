@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Table, Badge, Modal, Row, Col, Form, Spinner } from 'react-bootstrap';
 import { Star } from 'lucide-react';
-import api from '../../utils/api';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 const criteriosLabels = {
   dominio_tema: 'Dominio del tema',
@@ -37,19 +38,41 @@ const EvaluacionesAdmin = () => {
   const [detalle, setDetalle] = useState(null);
 
   useEffect(() => {
-    api.get('/evaluaciones')
-      .then(setEvaluaciones)
-      .finally(() => setLoading(false));
+    const cargar = async () => {
+      const [evalsSnap, usersSnap, materiasSnap] = await Promise.all([
+        getDocs(collection(db, 'evaluaciones')),
+        getDocs(collection(db, 'users')),
+        getDocs(collection(db, 'materias'))
+      ]);
+
+      const usersMap = {};
+      usersSnap.docs.forEach(d => { usersMap[d.id] = d.data(); });
+      const materiasMap = {};
+      materiasSnap.docs.forEach(d => { materiasMap[d.id] = d.data(); });
+
+      const data = evalsSnap.docs.map(d => {
+        const e = d.data();
+        return {
+          id: d.id,
+          ...e,
+          alumnoNombre: usersMap[e.alumno]?.name || '—',
+          profesorNombre: usersMap[e.profesor]?.name || '—',
+          materiaNombre: materiasMap[e.materia]?.nombre || '—',
+          createdAt: e.createdAt?.toDate?.() || new Date()
+        };
+      });
+      setEvaluaciones(data);
+      setLoading(false);
+    };
+    cargar();
   }, []);
 
-  const profesores = [...new Map(
-    evaluaciones
-      .filter(e => e.profesor)
-      .map(e => [e.profesor._id, e.profesor])
+  const profesoresUnicos = [...new Map(
+    evaluaciones.map(e => [e.profesor, { uid: e.profesor, nombre: e.profesorNombre }])
   ).values()];
 
   const evaluacionesFiltradas = evaluaciones.filter(e =>
-    filtroProfesor ? e.profesor?._id === filtroProfesor : true
+    filtroProfesor ? e.profesor === filtroProfesor : true
   );
 
   const promedioGeneral = evaluaciones.length > 0
@@ -66,7 +89,6 @@ const EvaluacionesAdmin = () => {
       <h2 className="page-title">Resultados de Evaluaciones</h2>
       <p className="page-subtitle">Consulta cómo los alumnos evaluaron a los profesores.</p>
 
-      {/* Estadísticas */}
       <Row className="mb-4">
         <Col sm={4} className="mb-3">
           <div className="total-card">
@@ -77,67 +99,53 @@ const EvaluacionesAdmin = () => {
         <Col sm={4} className="mb-3">
           <div className="total-card">
             <span className="total-label">Profesores evaluados</span>
-            <span className="total-value" style={{ color: '#2d6a4f' }}>{profesores.length}</span>
+            <span className="total-value" style={{ color: '#2d6a4f' }}>{profesoresUnicos.length}</span>
           </div>
         </Col>
         <Col sm={4} className="mb-3">
           <div className="total-card">
             <span className="total-label">Promedio general</span>
-            <span className="total-value" style={{ color: '#e6a817' }}>
-              {promedioGeneral} / 5
-            </span>
+            <span className="total-value" style={{ color: '#e6a817' }}>{promedioGeneral} / 5</span>
           </div>
         </Col>
       </Row>
 
-      {/* Filtro por profesor */}
       <div className="filtros-card mb-4">
         <Row className="align-items-end g-3">
           <Col md={4}>
             <Form.Label className="fw-semibold">Filtrar por profesor</Form.Label>
             <Form.Select value={filtroProfesor} onChange={e => setFiltroProfesor(e.target.value)}>
               <option value="">Todos los profesores</option>
-              {profesores.map(p => (
-                <option key={p._id} value={p._id}>{p.name}</option>
+              {profesoresUnicos.map(p => (
+                <option key={p.uid} value={p.uid}>{p.nombre}</option>
               ))}
             </Form.Select>
           </Col>
         </Row>
       </div>
 
-      {/* Tabla */}
       <div className="tabla-asistencia">
         <Table responsive hover>
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Alumno</th>
-              <th>Profesor</th>
-              <th>Materia</th>
-              <th>Promedio</th>
-              <th className="text-end">Detalle</th>
+              <th>Fecha</th><th>Alumno</th><th>Profesor</th><th>Materia</th>
+              <th>Promedio</th><th className="text-end">Detalle</th>
             </tr>
           </thead>
           <tbody>
             {evaluacionesFiltradas.map(e => {
               const promedio = calcularPromedio(e.respuestas);
               return (
-                <tr key={e._id}>
+                <tr key={e.id}>
                   <td>{formatFecha(e.createdAt)}</td>
-                  <td className="fw-semibold">{e.alumno?.name || '—'}</td>
-                  <td>{e.profesor?.name || '—'}</td>
-                  <td>{e.materia?.nombre || '—'}</td>
+                  <td className="fw-semibold">{e.alumnoNombre}</td>
+                  <td>{e.profesorNombre}</td>
+                  <td>{e.materiaNombre}</td>
                   <td>
-                    <Badge bg={variantPromedio(promedio)} className="badge-asistencia">
-                      {promedio} / 5
-                    </Badge>
+                    <Badge bg={variantPromedio(promedio)} className="badge-asistencia">{promedio} / 5</Badge>
                   </td>
                   <td className="text-end">
-                    <button
-                      className="action-btn action-btn-warning"
-                      title="Ver detalle"
-                      onClick={() => setDetalle(e)}
-                    >
+                    <button className="action-btn action-btn-warning" title="Ver detalle" onClick={() => setDetalle(e)}>
                       <Star size={16} />
                     </button>
                   </td>
@@ -145,32 +153,21 @@ const EvaluacionesAdmin = () => {
               );
             })}
             {evaluacionesFiltradas.length === 0 && (
-              <tr>
-                <td colSpan={6} className="text-center text-muted py-4">
-                  No hay evaluaciones registradas.
-                </td>
-              </tr>
+              <tr><td colSpan={6} className="text-center text-muted py-4">No hay evaluaciones registradas.</td></tr>
             )}
           </tbody>
         </Table>
       </div>
 
-      {/* Modal de detalle */}
       <Modal show={!!detalle} onHide={() => setDetalle(null)} centered>
         <Modal.Header closeButton>
           <Modal.Title>Detalle de evaluación</Modal.Title>
         </Modal.Header>
         {detalle && (
           <Modal.Body>
-            <p className="mb-1">
-              <strong>Profesor:</strong> {detalle.profesor?.name}
-            </p>
-            <p className="mb-1">
-              <strong>Materia:</strong> {detalle.materia?.nombre}
-            </p>
-            <p className="mb-3">
-              <strong>Alumno:</strong> {detalle.alumno?.name}
-            </p>
+            <p className="mb-1"><strong>Profesor:</strong> {detalle.profesorNombre}</p>
+            <p className="mb-1"><strong>Materia:</strong> {detalle.materiaNombre}</p>
+            <p className="mb-3"><strong>Alumno:</strong> {detalle.alumnoNombre}</p>
 
             <h6 className="fw-bold mb-3">Criterios</h6>
             {Object.entries(criteriosLabels).map(([key, label]) => {
@@ -180,9 +177,7 @@ const EvaluacionesAdmin = () => {
                   <span style={{ fontSize: '0.9rem' }}>{label}</span>
                   <div className="d-flex align-items-center gap-2">
                     <div className="d-flex">{renderEstrellas(valor)}</div>
-                    <span style={{ fontSize: '0.85rem', color: '#6c757d', minWidth: '30px' }}>
-                      {valor}/5
-                    </span>
+                    <span style={{ fontSize: '0.85rem', color: '#6c757d', minWidth: '30px' }}>{valor}/5</span>
                   </div>
                 </div>
               );

@@ -1,9 +1,15 @@
+import { auth } from '../firebase';
+
 const API_URL = '/api';
 
-const getToken = () => localStorage.getItem('token');
+const getToken = async () => {
+  const currentUser = auth.currentUser;
+  if (currentUser) return await currentUser.getIdToken();
+  return null;
+};
 
 const request = async (endpoint, options = {}) => {
-  const token = getToken();
+  const token = await getToken();
   const isFormData = options.body instanceof FormData;
   const config = {
     headers: {
@@ -18,7 +24,7 @@ const request = async (endpoint, options = {}) => {
   try {
     res = await fetch(`${API_URL}${endpoint}`, config);
   } catch (err) {
-    throw new Error('No se pudo conectar con el servidor. Verifica que el backend este corriendo.');
+    throw new Error('No se pudo conectar con el servidor.');
   }
 
   const text = await res.text();
@@ -26,7 +32,7 @@ const request = async (endpoint, options = {}) => {
   try {
     data = text ? JSON.parse(text) : {};
   } catch {
-    throw new Error('El backend no está corriendo. Inicia el servidor y asegúrate de que MongoDB esté activo.');
+    throw new Error('Error al procesar la respuesta del servidor.');
   }
 
   if (!res.ok) {
