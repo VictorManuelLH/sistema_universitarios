@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Badge, Button, Alert, Table, Spinner, Pagination } from 'react-bootstrap';
-import { FileText, BookOpen, CheckCircle, XCircle } from 'lucide-react';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { Badge, Button, Alert, Table, Spinner, Pagination, Modal } from 'react-bootstrap';
+import { FileText, BookOpen, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { collection, getDocs, doc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 
 const POR_PAGINA = 10;
@@ -14,6 +14,8 @@ const GestionReportes = () => {
   const [loading, setLoading] = useState(true);
   const [paginaReportes, setPaginaReportes] = useState(1);
   const [paginaLectura, setPaginaLectura] = useState(1);
+  const [reporteVer, setReporteVer] = useState(null);
+  const [lecturaVer, setLecturaVer] = useState(null);
 
   useEffect(() => {
     const cargarDatos = async () => {
@@ -52,7 +54,27 @@ const GestionReportes = () => {
 
   const actualizarEstado = async (coleccion, id, estado) => {
     try {
+      const lista = coleccion === 'reportes' ? reportes : reportesLectura;
+      const reporte = lista.find(r => r.id === id);
+
       await updateDoc(doc(db, coleccion, id), { estado });
+
+      if (reporte?.alumno) {
+        const esLectura = coleccion === 'reportesLectura';
+        const titulo = reporte.titulo || 'Sin título';
+        const tipo = estado === 'aprobado' ? 'success' : 'danger';
+        const accion = estado === 'aprobado' ? 'aprobado' : 'rechazado';
+        const link = esLectura ? '/reporte-lectura' : '/reportes';
+        await addDoc(collection(db, 'notificaciones'), {
+          usuario: reporte.alumno,
+          mensaje: `Tu ${esLectura ? 'reporte de lectura' : 'reporte'} "${titulo}" ha sido ${accion}.`,
+          tipo,
+          leida: false,
+          link,
+          createdAt: serverTimestamp()
+        });
+      }
+
       setMensaje({ tipo: 'success', texto: `Reporte ${estado === 'aprobado' ? 'aprobado' : 'rechazado'} correctamente.` });
       if (coleccion === 'reportes') {
         setReportes(prev => prev.map(r => r.id === id ? { ...r, estado } : r));
@@ -107,7 +129,7 @@ const GestionReportes = () => {
               <div className="tabla-asistencia">
                 <Table responsive hover>
                   <thead>
-                    <tr><th>Fecha</th><th>Alumno</th><th>Titulo</th><th>Descripcion</th><th>Estado</th><th className="text-end">Acciones</th></tr>
+                    <tr><th>Fecha</th><th>Alumno</th><th>Titulo</th><th>Estado</th><th className="text-end">Acciones</th></tr>
                   </thead>
                   <tbody>
                     {reportesPaginados.map(r => (
@@ -115,23 +137,27 @@ const GestionReportes = () => {
                         <td>{formatFecha(r.fechaSolicitud)}</td>
                         <td className="fw-semibold">{r.alumnoNombre}</td>
                         <td>{r.titulo}</td>
-                        <td className="text-muted" style={{ maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.descripcion}</td>
                         <td>{renderEstadoBadge(r.estado)}</td>
                         <td className="text-end">
-                          {r.estado === 'pendiente' ? (
-                            <div className="d-flex gap-2 justify-content-end">
-                              <Button variant="success" size="sm" onClick={() => actualizarEstado('reportes', r.id, 'aprobado')}>
-                                <CheckCircle size={14} className="me-1" />Aprobar
-                              </Button>
-                              <Button variant="outline-danger" size="sm" onClick={() => actualizarEstado('reportes', r.id, 'rechazado')}>
-                                <XCircle size={14} className="me-1" />Rechazar
-                              </Button>
-                            </div>
-                          ) : <span className="text-muted">-</span>}
+                          <div className="d-flex gap-2 justify-content-end">
+                            <Button variant="outline-secondary" size="sm" onClick={() => setReporteVer(r)}>
+                              <Eye size={14} className="me-1" />Ver
+                            </Button>
+                            {r.estado === 'pendiente' && (
+                              <>
+                                <Button variant="success" size="sm" onClick={() => actualizarEstado('reportes', r.id, 'aprobado')}>
+                                  <CheckCircle size={14} className="me-1" />Aprobar
+                                </Button>
+                                <Button variant="outline-danger" size="sm" onClick={() => actualizarEstado('reportes', r.id, 'rechazado')}>
+                                  <XCircle size={14} className="me-1" />Rechazar
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
-                    {reportesPaginados.length === 0 && <tr><td colSpan="6" className="text-center text-muted py-4">No hay reportes</td></tr>}
+                    {reportesPaginados.length === 0 && <tr><td colSpan="5" className="text-center text-muted py-4">No hay reportes</td></tr>}
                   </tbody>
                 </Table>
               </div>
@@ -154,32 +180,35 @@ const GestionReportes = () => {
               <div className="tabla-asistencia">
                 <Table responsive hover>
                   <thead>
-                    <tr><th>Fecha</th><th>Alumno</th><th>Libro</th><th>Autor</th><th>Palabras</th><th>Estado</th><th className="text-end">Acciones</th></tr>
+                    <tr><th>Fecha</th><th>Alumno</th><th>Libro</th><th>Estado</th><th className="text-end">Acciones</th></tr>
                   </thead>
                   <tbody>
                     {lecturasPaginadas.map(r => (
                       <tr key={r.id}>
                         <td>{formatFecha(r.fecha)}</td>
                         <td className="fw-semibold">{r.alumnoNombre}</td>
-                        <td>{r.titulo}</td>
-                        <td>{r.autor}</td>
-                        <td>{r.palabras}</td>
+                        <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.titulo}</td>
                         <td>{renderEstadoBadge(r.estado)}</td>
                         <td className="text-end">
-                          {r.estado === 'pendiente' ? (
-                            <div className="d-flex gap-2 justify-content-end">
-                              <Button variant="success" size="sm" onClick={() => actualizarEstado('reportesLectura', r.id, 'aprobado')}>
-                                <CheckCircle size={14} className="me-1" />Aprobar
-                              </Button>
-                              <Button variant="outline-danger" size="sm" onClick={() => actualizarEstado('reportesLectura', r.id, 'rechazado')}>
-                                <XCircle size={14} className="me-1" />Rechazar
-                              </Button>
-                            </div>
-                          ) : <span className="text-muted">-</span>}
+                          <div className="d-flex gap-2 justify-content-end">
+                            <Button variant="outline-secondary" size="sm" onClick={() => setLecturaVer(r)}>
+                              <Eye size={14} className="me-1" />Ver
+                            </Button>
+                            {r.estado === 'pendiente' && (
+                              <>
+                                <Button variant="success" size="sm" onClick={() => actualizarEstado('reportesLectura', r.id, 'aprobado')}>
+                                  <CheckCircle size={14} className="me-1" />Aprobar
+                                </Button>
+                                <Button variant="outline-danger" size="sm" onClick={() => actualizarEstado('reportesLectura', r.id, 'rechazado')}>
+                                  <XCircle size={14} className="me-1" />Rechazar
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
-                    {lecturasPaginadas.length === 0 && <tr><td colSpan="7" className="text-center text-muted py-4">No hay reportes de lectura</td></tr>}
+                    {lecturasPaginadas.length === 0 && <tr><td colSpan="5" className="text-center text-muted py-4">No hay reportes de lectura</td></tr>}
                   </tbody>
                 </Table>
               </div>
@@ -198,6 +227,108 @@ const GestionReportes = () => {
           )}
         </>
       )}
+
+      <Modal show={!!lecturaVer} onHide={() => setLecturaVer(null)} centered size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title style={{ fontSize: '1rem' }}>Detalle del Reporte de Lectura</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {lecturaVer && (
+            <div className="d-flex flex-column gap-3">
+              <div>
+                <p className="text-muted mb-1" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Alumno</p>
+                <p className="mb-0 fw-semibold">{lecturaVer.alumnoNombre}</p>
+              </div>
+              <div>
+                <p className="text-muted mb-1" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Fecha</p>
+                <p className="mb-0">{formatFecha(lecturaVer.fecha)}</p>
+              </div>
+              <div>
+                <p className="text-muted mb-1" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Libro</p>
+                <p className="mb-0">{lecturaVer.titulo}</p>
+              </div>
+              <div>
+                <p className="text-muted mb-1" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Autor</p>
+                <p className="mb-0">{lecturaVer.autor}</p>
+              </div>
+              {lecturaVer.palabras && (
+                <div>
+                  <p className="text-muted mb-1" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Palabras en el resumen</p>
+                  <p className="mb-0">{lecturaVer.palabras}</p>
+                </div>
+              )}
+              {lecturaVer.contenido && (
+                <div>
+                  <p className="text-muted mb-1" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Resumen</p>
+                  <p className="mb-0" style={{ whiteSpace: 'pre-wrap' }}>{lecturaVer.contenido}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-muted mb-1" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Estado</p>
+                {renderEstadoBadge(lecturaVer.estado)}
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          {lecturaVer?.estado === 'pendiente' && (
+            <>
+              <Button variant="success" size="sm" onClick={() => { actualizarEstado('reportesLectura', lecturaVer.id, 'aprobado'); setLecturaVer(null); }}>
+                <CheckCircle size={14} className="me-1" />Aprobar
+              </Button>
+              <Button variant="outline-danger" size="sm" onClick={() => { actualizarEstado('reportesLectura', lecturaVer.id, 'rechazado'); setLecturaVer(null); }}>
+                <XCircle size={14} className="me-1" />Rechazar
+              </Button>
+            </>
+          )}
+          <Button variant="secondary" size="sm" onClick={() => setLecturaVer(null)}>Cerrar</Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal show={!!reporteVer} onHide={() => setReporteVer(null)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title style={{ fontSize: '1rem' }}>Detalle del Reporte</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {reporteVer && (
+            <div className="d-flex flex-column gap-3">
+              <div>
+                <p className="text-muted mb-1" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Alumno</p>
+                <p className="mb-0 fw-semibold">{reporteVer.alumnoNombre}</p>
+              </div>
+              <div>
+                <p className="text-muted mb-1" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Fecha</p>
+                <p className="mb-0">{formatFecha(reporteVer.fechaSolicitud)}</p>
+              </div>
+              <div>
+                <p className="text-muted mb-1" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Título</p>
+                <p className="mb-0">{reporteVer.titulo}</p>
+              </div>
+              <div>
+                <p className="text-muted mb-1" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Descripción</p>
+                <p className="mb-0" style={{ whiteSpace: 'pre-wrap' }}>{reporteVer.descripcion}</p>
+              </div>
+              <div>
+                <p className="text-muted mb-1" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>Estado</p>
+                {renderEstadoBadge(reporteVer.estado)}
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          {reporteVer?.estado === 'pendiente' && (
+            <>
+              <Button variant="success" size="sm" onClick={() => { actualizarEstado('reportes', reporteVer.id, 'aprobado'); setReporteVer(null); }}>
+                <CheckCircle size={14} className="me-1" />Aprobar
+              </Button>
+              <Button variant="outline-danger" size="sm" onClick={() => { actualizarEstado('reportes', reporteVer.id, 'rechazado'); setReporteVer(null); }}>
+                <XCircle size={14} className="me-1" />Rechazar
+              </Button>
+            </>
+          )}
+          <Button variant="secondary" size="sm" onClick={() => setReporteVer(null)}>Cerrar</Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };

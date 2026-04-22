@@ -177,7 +177,14 @@ const HistorialAsistencias = () => {
         ) : (
           <Table responsive hover>
             <thead>
-              <tr><th>Fecha</th><th>Matrícula</th><th>Alumno</th><th>Estado</th><th className="text-end">Acciones</th></tr>
+              <tr>
+                <th>Fecha</th>
+                <th>Matrícula</th>
+                <th>Alumno</th>
+                {!materiaFiltro && <th>Materia</th>}
+                <th>Estado</th>
+                <th className="text-end">Acciones</th>
+              </tr>
             </thead>
             <tbody>
               {registrosPaginados.map(registro => (
@@ -185,6 +192,7 @@ const HistorialAsistencias = () => {
                   <td>{formatFecha(registro.fecha)}</td>
                   <td className="fw-semibold">{registro.alumnoMatricula}</td>
                   <td>{registro.alumnoNombre}</td>
+                  {!materiaFiltro && <td className="text-muted" style={{ fontSize: '0.85rem' }}>{registro.materiaNombre}</td>}
                   <td>
                     {editandoId === registro.id ? (
                       <Form.Select size="sm" value={editandoEstado} onChange={e => setEditandoEstado(e.target.value)} style={{ width: '140px', display: 'inline-block' }}>
@@ -208,7 +216,7 @@ const HistorialAsistencias = () => {
                   </td>
                 </tr>
               ))}
-              {registrosPaginados.length === 0 && <tr><td colSpan={5} className="text-center text-muted py-4">No hay registros.</td></tr>}
+              {registrosPaginados.length === 0 && <tr><td colSpan={materiaFiltro ? 5 : 6} className="text-center text-muted py-4">No hay registros.</td></tr>}
             </tbody>
           </Table>
         )}

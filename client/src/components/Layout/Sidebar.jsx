@@ -10,7 +10,8 @@ import {
   Users,
   LayoutDashboard,
   CalendarDays,
-  UserCircle
+  UserCircle,
+  GraduationCap
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -26,13 +27,15 @@ const iconMap = {
   Users,
   LayoutDashboard,
   CalendarDays,
-  UserCircle
+  UserCircle,
+  GraduationCap
 };
 
 const navItemsAlumno = [
   { path: '/', label: 'Inicio', icon: 'Home' },
   { path: '/horario', label: 'Horario', icon: 'CalendarDays' },
   { path: '/asistencia', label: 'Asistencia', icon: 'ClipboardCheck' },
+  { path: '/calificaciones', label: 'Calificaciones', icon: 'GraduationCap' },
   { path: '/reportes', label: 'Reportes', icon: 'FileText' },
   { path: '/reporte-lectura', label: 'Reporte de Lectura', icon: 'BookOpen' },
   { path: '/lineamientos', label: 'Lineamientos', icon: 'Scale' },
@@ -45,6 +48,7 @@ const navItemsProfesor = [
   { path: '/', label: 'Inicio', icon: 'Home' },
   { path: '/horario', label: 'Horario', icon: 'CalendarDays' },
   { path: '/gestion-asistencias', label: 'Gestion de Asistencias', icon: 'ClipboardCheck' },
+  { path: '/gestion-calificaciones', label: 'Calificaciones', icon: 'GraduationCap' },
   { path: '/historial-asistencias', label: 'Historial de Asistencias', icon: 'FileText' },
   { path: '/gestion-reportes', label: 'Gestion de Reportes', icon: 'BookOpen' },
   { path: '/lineamientos', label: 'Lineamientos', icon: 'Scale' },
@@ -57,6 +61,7 @@ const navItemsAdmin = [
   { path: '/admin/usuarios', label: 'Gestión de Usuarios', icon: 'Users' },
   { path: '/admin/materias', label: 'Gestión de Materias', icon: 'BookOpen' },
   { path: '/admin/evaluaciones', label: 'Evaluaciones', icon: 'Star' },
+  { path: '/admin/reportes', label: 'Gestión de Reportes', icon: 'FileText' },
   { path: '/perfil', label: 'Mi Perfil', icon: 'UserCircle' },
   { path: '/cambiar-clave', label: 'Cambiar Clave', icon: 'KeyRound' }
 ];

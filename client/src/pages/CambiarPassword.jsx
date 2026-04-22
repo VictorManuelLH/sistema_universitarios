@@ -5,6 +5,18 @@ import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 
 import { auth } from '../firebase';
 import { useAuth } from '../context/AuthContext';
 
+const PasswordField = ({ label, value, onChange, show, onToggle }) => (
+  <Form.Group className="mb-4">
+    <Form.Label className="fw-semibold">{label}</Form.Label>
+    <div className="password-input-group">
+      <Form.Control type={show ? 'text' : 'password'} value={value} onChange={e => onChange(e.target.value)} />
+      <button type="button" className="password-toggle" onClick={onToggle}>
+        {show ? <EyeOff size={18} /> : <Eye size={18} />}
+      </button>
+    </div>
+  </Form.Group>
+);
+
 const CambiarPassword = () => {
   const { user } = useAuth();
   const [passwordActual, setPasswordActual] = useState('');
@@ -30,6 +42,7 @@ const CambiarPassword = () => {
     if (!passwordActual.trim()) return setMensaje({ tipo: 'danger', texto: 'Ingresa tu contraseña actual.' });
     if (!passwordNueva) return setMensaje({ tipo: 'danger', texto: 'Ingresa la nueva contraseña.' });
     if (!requisitos.every(r => r.valid)) return setMensaje({ tipo: 'danger', texto: 'La nueva contraseña no cumple todos los requisitos de seguridad.' });
+    if (passwordNueva === passwordActual) return setMensaje({ tipo: 'danger', texto: 'La nueva contraseña no puede ser igual a la actual.' });
     if (passwordNueva !== passwordConfirmar) return setMensaje({ tipo: 'danger', texto: 'Las contraseñas no coinciden.' });
 
     setGuardando(true);
@@ -50,18 +63,6 @@ const CambiarPassword = () => {
       setGuardando(false);
     }
   };
-
-  const PasswordField = ({ label, value, onChange, show, onToggle }) => (
-    <Form.Group className="mb-4">
-      <Form.Label className="fw-semibold">{label}</Form.Label>
-      <div className="password-input-group">
-        <Form.Control type={show ? 'text' : 'password'} value={value} onChange={e => onChange(e.target.value)} />
-        <button type="button" className="password-toggle" onClick={onToggle}>
-          {show ? <EyeOff size={18} /> : <Eye size={18} />}
-        </button>
-      </div>
-    </Form.Group>
-  );
 
   return (
     <div>

@@ -32,16 +32,40 @@ const GestionAsistencias = () => {
     if (!materia?.alumnos?.length) { setAlumnos([]); return; }
 
     const cargarAlumnos = async () => {
-      const usersSnap = await getDocs(collection(db, 'users'));
-      const usersMap = {};
-      usersSnap.docs.forEach(d => { usersMap[d.id] = d.data(); });
+      try {
+        const fechaStr = new Date().toISOString().split('T')[0];
 
-      setAlumnos(materia.alumnos.map(uid => ({
-        uid,
-        matricula: usersMap[uid]?.matricula || '',
-        nombre: usersMap[uid]?.name || uid,
-        estado: 'sin_registro'
-      })));
+        const [usersSnap, asistenciasSnap] = await Promise.all([
+          getDocs(collection(db, 'users')),
+          getDocs(query(
+            collection(db, 'asistencias'),
+            where('materia', '==', materiaSeleccionada)
+          ))
+        ]);
+
+        const usersMap = {};
+        usersSnap.docs.forEach(d => { usersMap[d.id] = d.data(); });
+
+        const asistenciasMap = {};
+        asistenciasSnap.docs.forEach(d => {
+          const data = d.data();
+          const docFecha = data.fecha?.toDate
+            ? data.fecha.toDate().toISOString().split('T')[0]
+            : new Date(data.fecha).toISOString().split('T')[0];
+          if (docFecha === fechaStr) {
+            asistenciasMap[data.alumno] = data.estado;
+          }
+        });
+
+        setAlumnos(materia.alumnos.map(uid => ({
+          uid,
+          matricula: usersMap[uid]?.matricula || '',
+          nombre: usersMap[uid]?.name || uid,
+          estado: asistenciasMap[uid] || 'sin_registro'
+        })));
+      } catch (err) {
+        console.error('Error al cargar alumnos:', err);
+      }
     };
     cargarAlumnos();
   }, [materiaSeleccionada, materias]);

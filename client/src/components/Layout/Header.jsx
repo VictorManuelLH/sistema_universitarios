@@ -117,7 +117,7 @@ const Header = ({ onToggleSidebar }) => {
             aria-label="Notificaciones"
             aria-expanded={showNotif}
             style={{
-              background: 'rgba(255,255,255,0.15)',
+              background: '#2d6a4f',
               border: 'none',
               borderRadius: 8,
               padding: '6px 10px',
@@ -208,7 +208,7 @@ const Header = ({ onToggleSidebar }) => {
                       <div style={{ flex: 1 }}>
                         <p style={{ margin: 0, fontSize: '0.83rem', color: '#1e293b', lineHeight: 1.4 }}>{n.mensaje}</p>
                         <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: '#94a3b8' }}>
-                          {new Date(n.createdAt).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          {(n.createdAt?.toDate ? n.createdAt.toDate() : new Date(n.createdAt || Date.now())).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
                       {!n.leida && (

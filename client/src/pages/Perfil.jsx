@@ -1,39 +1,15 @@
-import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
-import { User, Save } from 'lucide-react';
+import { User } from 'lucide-react';
+
+const Campo = ({ label, value }) => (
+  <div className="mb-4">
+    <p className="text-muted mb-1" style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>{label}</p>
+    <p className="mb-0">{value || '—'}</p>
+  </div>
+);
 
 const Perfil = () => {
-  const { user, userRole, updateUser } = useAuth();
-  const [form, setForm] = useState({
-    name: user?.name || '',
-    carrera: user?.carrera || '',
-    semestre: user?.semestre || '',
-    departamento: user?.departamento || ''
-  });
-  const [guardando, setGuardando] = useState(false);
-  const [mensaje, setMensaje] = useState(null);
-
-  const handleChange = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
-
-  const handleSubmit = async e => {
-    e.preventDefault();
-    setGuardando(true);
-    setMensaje(null);
-    try {
-      const allowed = ['name', 'carrera', 'semestre', 'departamento'];
-      const updates = {};
-      allowed.forEach(k => { if (form[k] !== undefined) updates[k] = form[k]; });
-      await updateDoc(doc(db, 'users', user.uid), updates);
-      updateUser(updates);
-      setMensaje({ tipo: 'success', texto: 'Perfil actualizado correctamente.' });
-    } catch (err) {
-      setMensaje({ tipo: 'danger', texto: err.message });
-    } finally {
-      setGuardando(false);
-    }
-  };
+  const { user, userRole } = useAuth();
 
   const rolLabel = userRole === 'alumno' ? 'Alumno' : userRole === 'profesor' ? 'Profesor' : 'Administrador';
 
@@ -54,51 +30,21 @@ const Perfil = () => {
         </div>
 
         <div className="card-body">
-          <div className="mb-4">
-            <p className="text-muted mb-1" style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>Correo</p>
-            <p className="mb-0">{user?.email}</p>
-          </div>
-          {userRole === 'alumno' && user?.matricula && (
-            <div className="mb-4">
-              <p className="text-muted mb-1" style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>Matrícula</p>
-              <p className="mb-0">{user.matricula}</p>
-            </div>
+          <Campo label="Nombre completo" value={user?.name} />
+          <Campo label="Correo" value={user?.email} />
+          {userRole === 'alumno' && (
+            <>
+              {user?.matricula && <Campo label="Matrícula" value={user.matricula} />}
+              {user?.carrera && <Campo label="Carrera" value={user.carrera} />}
+              {user?.semestre && <Campo label="Semestre" value={user.semestre} />}
+            </>
           )}
-          {userRole === 'profesor' && user?.numEmpleado && (
-            <div className="mb-4">
-              <p className="text-muted mb-1" style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>Número de Empleado</p>
-              <p className="mb-0">{user.numEmpleado}</p>
-            </div>
+          {userRole === 'profesor' && (
+            <>
+              {user?.numEmpleado && <Campo label="Número de Empleado" value={user.numEmpleado} />}
+              {user?.departamento && <Campo label="Departamento" value={user.departamento} />}
+            </>
           )}
-          <hr />
-          <form onSubmit={handleSubmit}>
-            <div className="mb-3">
-              <label className="form-label fw-semibold">Nombre completo</label>
-              <input type="text" className="form-control" name="name" value={form.name} onChange={handleChange} required />
-            </div>
-            {userRole === 'alumno' && (
-              <>
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">Carrera</label>
-                  <input type="text" className="form-control" name="carrera" value={form.carrera} onChange={handleChange} />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">Semestre</label>
-                  <input type="text" className="form-control" name="semestre" value={form.semestre} onChange={handleChange} />
-                </div>
-              </>
-            )}
-            {userRole === 'profesor' && (
-              <div className="mb-3">
-                <label className="form-label fw-semibold">Departamento</label>
-                <input type="text" className="form-control" name="departamento" value={form.departamento} onChange={handleChange} />
-              </div>
-            )}
-            {mensaje && <div className={`alert alert-${mensaje.tipo} py-2`}>{mensaje.texto}</div>}
-            <button type="submit" className="btn btn-primary w-100" disabled={guardando}>
-              <Save size={16} className="me-2" />{guardando ? 'Guardando...' : 'Guardar cambios'}
-            </button>
-          </form>
         </div>
       </div>
     </div>

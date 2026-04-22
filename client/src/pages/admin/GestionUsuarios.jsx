@@ -88,9 +88,11 @@ const GestionUsuarios = () => {
 
   const handleEliminar = async () => {
     try {
+      // Marcar como inactivo primero para bloqueo inmediato, luego eliminar el documento
+      await updateDoc(doc(db, 'users', usuarioAEliminar.id), { active: false });
       await deleteDoc(doc(db, 'users', usuarioAEliminar.id));
       setUsuarios(prev => prev.filter(u => u.id !== usuarioAEliminar.id));
-      setMensaje({ tipo: 'success', texto: 'Usuario eliminado del sistema correctamente.' });
+      setMensaje({ tipo: 'success', texto: 'Usuario eliminado correctamente. Su sesión quedará bloqueada de inmediato.' });
     } catch (err) {
       setMensaje({ tipo: 'danger', texto: err.message });
     } finally {

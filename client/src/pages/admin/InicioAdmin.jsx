@@ -80,10 +80,10 @@ const InicioAdmin = () => {
           <p className="text-muted fw-semibold mb-2" style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>Actividad</p>
           <Row className="mb-4">
             <Col sm={4} className="mb-3">
-              <StatCard icon={FileText} value={stats.reportesPendientes} label="Reportes pendientes" color={stats.reportesPendientes > 0 ? '#ca8a04' : '#6c757d'} />
+              <StatCard icon={FileText} value={stats.reportesPendientes} label="Reportes pendientes" color={stats.reportesPendientes > 0 ? '#ca8a04' : '#6c757d'} onClick={() => navigate('/admin/reportes')} />
             </Col>
             <Col sm={4} className="mb-3">
-              <StatCard icon={ClipboardCheck} value={stats.lecturasPendientes} label="Lecturas pendientes" color={stats.lecturasPendientes > 0 ? '#ca8a04' : '#6c757d'} />
+              <StatCard icon={ClipboardCheck} value={stats.lecturasPendientes} label="Lecturas pendientes" color={stats.lecturasPendientes > 0 ? '#ca8a04' : '#6c757d'} onClick={() => navigate('/admin/reportes')} />
             </Col>
             <Col sm={4} className="mb-3">
               <StatCard icon={Star} value={stats.evaluaciones} label="Evaluaciones" color="#9333ea" onClick={() => navigate('/admin/evaluaciones')} />

@@ -16,6 +16,8 @@ import Perfil from './pages/Perfil';
 import GestionAsistencias from './pages/profesor/GestionAsistencias';
 import HistorialAsistencias from './pages/profesor/HistorialAsistencias';
 import GestionReportes from './pages/profesor/GestionReportes';
+import GestionCalificaciones from './pages/profesor/GestionCalificaciones';
+import Calificaciones from './pages/Calificaciones';
 import GestionUsuarios from './pages/admin/GestionUsuarios';
 import GestionMaterias from './pages/admin/GestionMaterias';
 import EvaluacionesAdmin from './pages/admin/EvaluacionesAdmin';
@@ -78,6 +80,7 @@ function AppRoutes() {
         <Route path="/cambiar-clave" element={<CambiarPassword />} />
 
         {/* Rutas de alumno */}
+        <Route path="/calificaciones" element={<RoleRoute role="alumno"><Calificaciones /></RoleRoute>} />
         <Route path="/asistencia" element={<RoleRoute role="alumno"><Asistencia /></RoleRoute>} />
         <Route path="/reportes" element={<RoleRoute role="alumno"><Reportes /></RoleRoute>} />
         <Route path="/reporte-lectura" element={<RoleRoute role="alumno"><ReporteLectura /></RoleRoute>} />
@@ -85,6 +88,7 @@ function AppRoutes() {
         <Route path="/evaluacion-profesores/:id" element={<RoleRoute role="alumno"><EvaluarProfesor /></RoleRoute>} />
 
         {/* Rutas de profesor */}
+        <Route path="/gestion-calificaciones" element={<RoleRoute role="profesor"><GestionCalificaciones /></RoleRoute>} />
         <Route path="/gestion-asistencias" element={<RoleRoute role="profesor"><GestionAsistencias /></RoleRoute>} />
         <Route path="/historial-asistencias" element={<RoleRoute role="profesor"><HistorialAsistencias /></RoleRoute>} />
         <Route path="/gestion-reportes" element={<RoleRoute role="profesor"><GestionReportes /></RoleRoute>} />
@@ -93,6 +97,7 @@ function AppRoutes() {
         <Route path="/admin/usuarios" element={<RoleRoute role="admin"><GestionUsuarios /></RoleRoute>} />
         <Route path="/admin/materias" element={<RoleRoute role="admin"><GestionMaterias /></RoleRoute>} />
         <Route path="/admin/evaluaciones" element={<RoleRoute role="admin"><EvaluacionesAdmin /></RoleRoute>} />
+        <Route path="/admin/reportes" element={<RoleRoute role="admin"><GestionReportes /></RoleRoute>} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

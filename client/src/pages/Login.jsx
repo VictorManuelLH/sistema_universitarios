@@ -19,14 +19,14 @@ const Login = () => {
     e.preventDefault();
     setError('');
 
-    if (!email || !password) {
+    if (!email.trim() || !password.trim()) {
       setError('Por favor completa todos los campos.');
       return;
     }
 
     setLoading(true);
     try {
-      await login(email, password);
+      await login(email.trim(), password.trim());
       setSuccess(true);
       setTimeout(() => {
         navigate('/');

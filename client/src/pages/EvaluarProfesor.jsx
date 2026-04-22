@@ -50,17 +50,31 @@ const EvaluarProfesor = () => {
   const [comentarios, setComentarios] = useState('');
 
   useEffect(() => {
-    if (!profesorUid || !materiaId) return;
+    if (!profesorUid || !materiaId || !user?.uid) return;
     const cargar = async () => {
       try {
-        const [profSnap, materiaSnap] = await Promise.all([
+        const [profSnap, materiaSnap, evalSnap] = await Promise.all([
           getDocs(query(collection(db, 'users'), where('__name__', '==', profesorUid))),
-          getDocs(query(collection(db, 'materias'), where('__name__', '==', materiaId)))
+          getDocs(query(collection(db, 'materias'), where('__name__', '==', materiaId))),
+          getDocs(query(collection(db, 'evaluaciones'), where('alumno', '==', user.uid), where('profesor', '==', profesorUid), where('materia', '==', materiaId)))
         ]);
+
         if (profSnap.empty || materiaSnap.empty) { setNoEncontrado(true); return; }
+
+        const materiaData = materiaSnap.docs[0].data();
+
+        // Verificar que el profesor realmente imparte esa materia
+        if (materiaData.profesor !== profesorUid) { setNoEncontrado(true); return; }
+
+        // Verificar que el alumno está inscrito en esa materia
+        if (!materiaData.alumnos?.includes(user.uid)) { setNoEncontrado(true); return; }
+
+        // Verificar que no haya evaluado ya esta combinación
+        if (!evalSnap.empty) { setNoEncontrado(true); return; }
+
         setProfesor({
           nombre: profSnap.docs[0].data().name,
-          materia: materiaSnap.docs[0].data().nombre
+          materia: materiaData.nombre
         });
       } catch {
         setNoEncontrado(true);
@@ -69,7 +83,7 @@ const EvaluarProfesor = () => {
       }
     };
     cargar();
-  }, [profesorUid, materiaId]);
+  }, [profesorUid, materiaId, user?.uid]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

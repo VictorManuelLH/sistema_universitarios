@@ -16,11 +16,17 @@ const Reportes = () => {
   const [loading, setLoading] = useState(true);
 
   const cargarReportes = async () => {
-    const snap = await getDocs(
-      query(collection(db, 'reportes'), where('alumno', '==', user.uid), orderBy('fechaSolicitud', 'desc'))
-    );
-    setReportes(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    setLoading(false);
+    try {
+      const snap = await getDocs(
+        query(collection(db, 'reportes'), where('alumno', '==', user.uid), orderBy('fechaSolicitud', 'desc'))
+      );
+      setReportes(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err) {
+      console.error('Error al cargar reportes:', err);
+      setMensaje({ tipo: 'danger', texto: 'Error al cargar los reportes. Intenta de nuevo.' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { if (user?.uid) cargarReportes(); }, [user?.uid]);

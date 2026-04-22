@@ -13,9 +13,10 @@ export const AuthProvider = ({ children }) => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (userDoc.exists()) {
+        if (userDoc.exists() && userDoc.data().active !== false) {
           setUser({ uid: firebaseUser.uid, email: firebaseUser.email, ...userDoc.data() });
         } else {
+          await signOut(auth);
           setUser(null);
         }
       } else {
@@ -29,7 +30,10 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const { user: firebaseUser } = await signInWithEmailAndPassword(auth, email, password);
     const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-    if (!userDoc.exists()) throw new Error('Usuario no encontrado en el sistema.');
+    if (!userDoc.exists() || userDoc.data().active === false) {
+      await signOut(auth);
+      throw new Error('Usuario no encontrado o deshabilitado en el sistema.');
+    }
     const userData = { uid: firebaseUser.uid, email: firebaseUser.email, ...userDoc.data() };
     setUser(userData);
     return userData;
