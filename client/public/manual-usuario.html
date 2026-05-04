@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manual de Usuario — Sistema Universitario</title>
+  <style>
+    :root {
+      --primary:   #1e3a5f;
+      --accent:    #2563eb;
+      --accent-lt: #dbeafe;
+      --success:   #16a34a;
+      --warning:   #d97706;
+      --danger:    #dc2626;
+      --neutral:   #f8fafc;
+      --border:    #e2e8f0;
+      --text:      #1e293b;
+      --muted:     #64748b;
+      --sidebar-w: 260px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: var(--neutral);
+      display: flex;
+    }
+
+    nav#sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: var(--sidebar-w);
+      height: 100vh;
+      background: var(--primary);
+      overflow-y: auto;
+      padding-bottom: 2rem;
+      z-index: 100;
+    }
+    .nav-brand {
+      padding: 1.5rem 1.2rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,.15);
+    }
+    .nav-brand h1 { color: #fff; font-size: 1.05rem; line-height: 1.3; }
+    .nav-brand span { color: #93c5fd; font-size: .8rem; display: block; margin-top: .25rem; }
+    .nav-group { padding: .75rem 0 .25rem; }
+    .nav-group-label {
+      color: #93c5fd;
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: .4rem 1.2rem;
+    }
+    nav#sidebar a {
+      display: block;
+      color: #cbd5e1;
+      text-decoration: none;
+      font-size: .87rem;
+      padding: .45rem 1.2rem .45rem 1.5rem;
+      border-left: 3px solid transparent;
+      transition: background .15s, border-color .15s, color .15s;
+    }
+    nav#sidebar a:hover, nav#sidebar a.active {
+      background: rgba(255,255,255,.08);
+      border-left-color: #60a5fa;
+      color: #fff;
+    }
+
+    main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      padding: 2.5rem 3rem;
+      max-width: 960px;
+    }
+
+    .cover {
+      background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%);
+      color: #fff;
+      border-radius: 12px;
+      padding: 3rem 2.5rem;
+      margin-bottom: 3rem;
+    }
+    .cover .badge {
+      display: inline-block;
+      background: rgba(255,255,255,.2);
+      border: 1px solid rgba(255,255,255,.3);
+      color: #fff;
+      font-size: .75rem;
+      padding: .3rem .8rem;
+      border-radius: 20px;
+      margin-bottom: 1rem;
+    }
+    .cover h1 { font-size: 2.1rem; font-weight: 700; line-height: 1.2; margin-bottom: .6rem; }
+    .cover p  { color: #bfdbfe; font-size: 1rem; max-width: 540px; }
+    .cover-meta {
+      display: flex;
+      gap: 2rem;
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255,255,255,.2);
+    }
+    .cover-meta span { color: #bfdbfe; font-size: .85rem; }
+    .cover-meta strong { display: block; color: #fff; font-size: .95rem; }
+
+    h2 {
+      font-size: 1.55rem;
+      color: var(--primary);
+      border-bottom: 2px solid var(--border);
+      padding-bottom: .5rem;
+      margin: 2.5rem 0 1.2rem;
+    }
+    h2:first-of-type { margin-top: 0; }
+    h3 { font-size: 1.15rem; color: var(--text); margin: 1.8rem 0 .7rem; }
+    h4 { font-size: 1rem; color: var(--muted); font-weight: 600; margin: 1.2rem 0 .5rem; }
+
+    p { line-height: 1.7; color: #334155; margin-bottom: .8rem; }
+    ul, ol { padding-left: 1.4rem; margin-bottom: .9rem; }
+    li { line-height: 1.7; color: #334155; margin-bottom: .2rem; }
+
+    .role-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    .role-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.2rem;
+      background: #fff;
+    }
+    .role-card .role-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      margin-bottom: .8rem;
+      color: #fff;
+    }
+    .role-card.student .role-icon { background: #2563eb; }
+    .role-card.teacher .role-icon { background: #16a34a; }
+    .role-card.admin   .role-icon { background: #d97706; }
+    .role-card h3 { margin: 0 0 .4rem; font-size: 1rem; }
+    .role-card p  { font-size: .87rem; color: var(--muted); margin: 0; }
+
+    .steps { counter-reset: step; list-style: none; padding: 0; margin: 1rem 0 1.5rem; }
+    .steps li {
+      counter-increment: step;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      margin-bottom: .9rem;
+    }
+    .steps li::before {
+      content: counter(step);
+      min-width: 28px; height: 28px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; font-weight: 700;
+      flex-shrink: 0;
+      margin-top: .1rem;
+    }
+    .steps li span { line-height: 1.6; color: #334155; }
+
+    .box {
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+      margin: 1rem 0;
+      font-size: .9rem;
+      line-height: 1.6;
+    }
+    .box.info    { background: #eff6ff; border-left: 4px solid #3b82f6; }
+    .box.warning { background: #fffbeb; border-left: 4px solid var(--warning); }
+    .box.danger  { background: #fef2f2; border-left: 4px solid var(--danger); }
+    .box.success { background: #f0fdf4; border-left: 4px solid var(--success); }
+
+    .table-wrap { overflow-x: auto; margin: 1rem 0 1.5rem; border-radius: 8px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; background: #fff; font-size: .88rem; }
+    thead { background: var(--primary); color: #fff; }
+    th { padding: .75rem 1rem; text-align: left; font-weight: 600; }
+    td { padding: .7rem 1rem; border-top: 1px solid var(--border); vertical-align: middle; }
+    tr:hover td { background: #f8fafc; }
+    .check-y { color: var(--success); font-weight: 700; }
+    .check-n { color: #cbd5e1; }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: .9rem;
+      margin: 1rem 0 1.5rem;
+    }
+    .feature-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    .feature-card .fc-label {
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: .3rem;
+    }
+    .feature-card .fc-title {
+      font-size: .95rem;
+      font-weight: 600;
+      margin-bottom: .35rem;
+    }
+    .feature-card .fc-desc { font-size: .83rem; color: var(--muted); line-height: 1.5; }
+
+    .screen-mock {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 1.2rem 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    }
+    .screen-titlebar {
+      background: #f1f5f9;
+      padding: .6rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-r { background: #fc6058; } .dot-y { background: #fec029; } .dot-g { background: #2aca3e; }
+    .screen-url {
+      flex: 1;
+      margin-left: .5rem;
+      background: #e2e8f0;
+      border-radius: 4px;
+      font-size: .75rem;
+      color: var(--muted);
+      padding: .25rem .7rem;
+    }
+    .screen-body { padding: 1.2rem 1.5rem; }
+
+    .tag {
+      display: inline-block;
+      padding: .2rem .6rem;
+      border-radius: 4px;
+      font-size: .78rem;
+      font-weight: 600;
+    }
+    .tag-blue   { background: #dbeafe; color: #1d4ed8; }
+    .tag-green  { background: #dcfce7; color: #15803d; }
+    .tag-yellow { background: #fef9c3; color: #a16207; }
+    .tag-red    { background: #fee2e2; color: #b91c1c; }
+
+    .section-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 2.5rem 0;
+    }
+
+    code {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-size: .85em;
+      padding: .15em .4em;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+    }
+
+    /* Credentials table */
+    .cred-table thead { background: #0f172a; }
+    .cred-password {
+      font-family: 'Courier New', monospace;
+      font-size: .85rem;
+      background: #f1f5f9;
+      padding: .2rem .5rem;
+      border-radius: 4px;
+      color: #0f172a;
+    }
+    .role-badge {
+      display: inline-block;
+      padding: .2rem .7rem;
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .03em;
+    }
+    .rb-admin   { background: #fef3c7; color: #92400e; }
+    .rb-prof    { background: #dcfce7; color: #14532d; }
+    .rb-alumno  { background: #dbeafe; color: #1e3a8a; }
+
+    @media (max-width: 780px) {
+      nav#sidebar { display: none; }
+      main { margin-left: 0; padding: 1.5rem; }
+    }
+    @media print {
+      nav#sidebar { display: none; }
+      main { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<nav id="sidebar">
+  <div class="nav-brand">
+    <h1>Sistema Universitario</h1>
+    <span>Manual de Usuario v1.0</span>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Introduccion</div>
+    <a href="#introduccion">Que es el sistema</a>
+    <a href="#roles">Roles de usuario</a>
+    <a href="#acceso">Acceso e inicio de sesion</a>
+    <a href="#credenciales">Credenciales de acceso</a>
+    <a href="#interfaz">Interfaz general</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Modulo Alumno</div>
+    <a href="#alumno-inicio">Inicio / Dashboard</a>
+    <a href="#alumno-asistencia">Registro de asistencia</a>
+    <a href="#alumno-calificaciones">Calificaciones</a>
+    <a href="#alumno-reportes">Reportes</a>
+    <a href="#alumno-horario">Horario</a>
+    <a href="#alumno-evaluacion">Evaluacion de profesores</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Modulo Profesor</div>
+    <a href="#prof-asistencias">Gestion de asistencias</a>
+    <a href="#prof-calificaciones">Gestion de calificaciones</a>
+    <a href="#prof-reportes">Gestion de reportes</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Modulo Administrador</div>
+    <a href="#admin-usuarios">Gestion de usuarios</a>
+    <a href="#admin-materias">Gestion de materias</a>
+    <a href="#admin-evaluaciones">Evaluaciones</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">General</div>
+    <a href="#notificaciones">Notificaciones</a>
+    <a href="#perfil">Perfil y contrasena</a>
+    <a href="#lineamientos">Lineamientos</a>
+    <a href="#preguntas">Preguntas frecuentes</a>
+  </div>
+</nav>
+
+<main>
+
+  <div class="cover">
+    <div class="badge">Documentacion Oficial</div>
+    <h1>Manual de Usuario<br>Sistema Universitario</h1>
+    <p>Guia completa para alumnos, profesores y administradores del sistema de gestion academica.</p>
+    <div class="cover-meta">
+      <div><span>Version</span><strong>1.0</strong></div>
+      <div><span>Fecha</span><strong>Mayo 2026</strong></div>
+      <div><span>Audiencia</span><strong>Todos los usuarios</strong></div>
+    </div>
+  </div>
+
+  <!-- 1. INTRODUCCION -->
+  <section id="introduccion">
+    <h2>1. Que es el Sistema Universitario?</h2>
+    <p>
+      El <strong>Sistema Universitario</strong> es una plataforma web de gestion academica que centraliza
+      el control de asistencias, calificaciones, reportes y evaluaciones docentes en un solo lugar.
+      Esta disenado para tres tipos de usuarios: <strong>alumnos</strong>, <strong>profesores</strong>
+      y <strong>administradores</strong>, cada uno con funciones especificas.
+    </p>
+
+    <div class="role-grid">
+      <div class="role-card student">
+        <div class="role-icon">AL</div>
+        <h3>Alumno</h3>
+        <p>Consulta calificaciones, registra su asistencia, envia reportes y evalua a sus profesores.</p>
+      </div>
+      <div class="role-card teacher">
+        <div class="role-icon">PR</div>
+        <h3>Profesor</h3>
+        <p>Gestiona asistencias y calificaciones de sus materias, y atiende reportes de alumnos.</p>
+      </div>
+      <div class="role-card admin">
+        <div class="role-icon">AD</div>
+        <h3>Administrador</h3>
+        <p>Administra usuarios, materias, inscripciones y tiene acceso completo al sistema.</p>
+      </div>
+    </div>
+
+    <div class="box info">
+      El sistema funciona completamente en el navegador web, sin necesidad de instalar ninguna aplicacion. Se recomienda utilizar Google Chrome, Firefox o Edge en su version mas reciente.
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- 2. ROLES -->
+  <section id="roles">
+    <h2>2. Roles y permisos</h2>
+    <p>Cada usuario tiene acceso unicamente a las funciones que corresponden a su rol. La siguiente tabla resume los permisos por modulo:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Funcion</th>
+            <th>Alumno</th>
+            <th>Profesor</th>
+            <th>Administrador</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Ver dashboard / inicio</td><td class="check-y">Si</td><td class="check-y">Si</td><td class="check-y">Si</td></tr>
+          <tr><td>Ver horario de clases</td><td class="check-y">Si</td><td class="check-y">Si</td><td class="check-n">—</td></tr>
+          <tr><td>Registrar asistencia propia</td><td class="check-y">Si</td><td class="check-n">—</td><td class="check-n">—</td></tr>
+          <tr><td>Marcar asistencia de alumnos</td><td class="check-n">—</td><td class="check-y">Si</td><td class="check-n">—</td></tr>
+          <tr><td>Ver calificaciones propias</td><td class="check-y">Si</td><td class="check-n">—</td><td class="check-n">—</td></tr>
+          <tr><td>Ingresar calificaciones</td><td class="check-n">—</td><td class="check-y">Si</td><td class="check-n">—</td></tr>
+          <tr><td>Enviar reportes / justificantes</td><td class="check-y">Si</td><td class="check-n">—</td><td class="check-n">—</td></tr>
+          <tr><td>Gestionar reportes (aprobar/rechazar)</td><td class="check-n">—</td><td class="check-y">Si</td><td class="check-y">Si</td></tr>
+          <tr><td>Evaluar profesores</td><td class="check-y">Si</td><td class="check-n">—</td><td class="check-n">—</td></tr>
+          <tr><td>Ver evaluaciones de profesores</td><td class="check-n">—</td><td class="check-n">—</td><td class="check-y">Si</td></tr>
+          <tr><td>Crear / editar usuarios</td><td class="check-n">—</td><td class="check-n">—</td><td class="check-y">Si</td></tr>
+          <tr><td>Gestionar materias e inscripciones</td><td class="check-n">—</td><td class="check-n">—</td><td class="check-y">Si</td></tr>
+          <tr><td>Ver lineamientos</td><td class="check-y">Si</td><td class="check-y">Si</td><td class="check-y">Si</td></tr>
+          <tr><td>Cambiar contrasena</td><td class="check-y">Si</td><td class="check-y">Si</td><td class="check-y">Si</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- 3. ACCESO / LOGIN -->
+  <section id="acceso">
+    <h2>3. Acceso e inicio de sesion</h2>
+    <p>Para ingresar al sistema, sigue los siguientes pasos:</p>
+
+    <ol class="steps">
+      <li><span>Abre tu navegador y escribe la direccion del sistema en la barra de URL.</span></li>
+      <li><span>Seras redirigido automaticamente a la pantalla de inicio de sesion.</span></li>
+      <li><span>Ingresa tu <strong>correo electronico institucional</strong> en el campo correspondiente.</span></li>
+      <li><span>Ingresa tu <strong>contrasena</strong>. Si es tu primer acceso, usa la contrasena que te proporciono el administrador.</span></li>
+      <li><span>Haz clic en el boton <strong>"Iniciar sesion"</strong>. El sistema te llevara a tu dashboard segun tu rol.</span></li>
+    </ol>
+
+    <div class="screen-mock">
+      <div class="screen-titlebar">
+        <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+        <span class="screen-url">sistema-universitario.web.app/login</span>
+      </div>
+      <div class="screen-body">
+        <p style="color:var(--muted);font-size:.85rem;margin-bottom:.5rem;">Pantalla de inicio de sesion</p>
+        <div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:1.5rem;max-width:340px;">
+          <div style="font-weight:600;margin-bottom:1rem;">Iniciar sesion</div>
+          <div style="background:#e2e8f0;border-radius:4px;height:36px;margin-bottom:.7rem;display:flex;align-items:center;padding:0 .8rem;font-size:.83rem;color:var(--muted);">correo@universidad.edu</div>
+          <div style="background:#e2e8f0;border-radius:4px;height:36px;margin-bottom:1rem;display:flex;align-items:center;padding:0 .8rem;font-size:.83rem;color:var(--muted);">........</div>
+          <div style="background:var(--accent);color:#fff;border-radius:6px;padding:.55rem;text-align:center;font-size:.88rem;font-weight:600;">Iniciar sesion</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="box warning">
+      Si tu cuenta ha sido desactivada por el administrador, recibiras un mensaje de error y seras redirigido a la pantalla de login. Contacta al administrador para reactivarla.
+    </div>
+
+    <h3>Cerrar sesion</h3>
+    <p>Para salir del sistema de forma segura, haz clic en el boton <strong>"Cerrar sesion"</strong> ubicado en la esquina superior derecha del encabezado. Esto es especialmente importante cuando usas equipos compartidos.</p>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- 4. CREDENCIALES -->
+  <section id="credenciales">
+    <h2>4. Credenciales de acceso</h2>
+    <p>
+      A continuacion se listan las cuentas disponibles para acceder al sistema. Utiliza el correo y la
+      contrasena correspondientes segun el rol que desees probar.
+    </p>
+
+    <div class="box warning">
+      Estas credenciales son para uso de prueba y demostracion. No compartas esta informacion fuera del equipo de trabajo. Se recomienda cambiar las contrasenas despues del primer acceso.
+    </div>
+
+    <h3>Administrador</h3>
+    <div class="table-wrap">
+      <table class="cred-table">
+        <thead>
+          <tr>
+            <th>Rol</th>
+            <th>Correo electronico</th>
+            <th>Contrasena</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="role-badge rb-admin">Administrador</span></td>
+            <td>admin@universidad.edu</td>
+            <td><span class="cred-password">Novaadmin1234!</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Profesores</h3>
+    <div class="table-wrap">
+      <table class="cred-table">
+        <thead>
+          <tr>
+            <th>Rol</th>
+            <th>Correo electronico</th>
+            <th>Contrasena</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="role-badge rb-prof">Profesor</span></td>
+            <td>ana.martinez@universidad.edu</td>
+            <td><span class="cred-password">Temporal1234!</span></td>
+          </tr>
+          <tr>
+            <td><span class="role-badge rb-prof">Profesor</span></td>
+            <td>ana.martinez@universidad.edu</td>
+            <td><span class="cred-password">Temporal1234!</span></td>
+          </tr>
+          <tr>
+            <td><span class="role-badge rb-prof">Profesor</span></td>
+            <td>ana.martinez@universidad.edu</td>
+            <td><span class="cred-password">Temporal1234!</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Alumnos</h3>
+    <div class="table-wrap">
+      <table class="cred-table">
+        <thead>
+          <tr>
+            <th>Rol</th>
+            <th>Correo electronico</th>
+            <th>Contrasena</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="role-badge rb-alumno">Alumno</span></td>
+            <td>admin@universidad.edu</td>
+            <td><span class="cred-password">Temporal1234!</span></td>
+          </tr>
+          <tr>
+            <td><span class="role-badge rb-alumno">Alumno</span></td>
+            <td>juan.pg@universidad.edu</td>
+            <td><span class="cred-password">Temporal1234!</span></td>
+          </tr>
+          <tr>
+            <td><span class="role-badge rb-alumno">Alumno</span></td>
+            <td>maria.gl@universidad.edu</td>
+            <td><span class="cred-password">Temporal1234!</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- 5. INTERFAZ GENERAL -->
+  <section id="interfaz">
+    <h2>5. Interfaz general del sistema</h2>
+    <p>Una vez dentro del sistema, encontraras tres zonas principales:</p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="fc-label">Zona 1</div>
+        <div class="fc-title">Menu lateral (Sidebar)</div>
+        <div class="fc-desc">Contiene todos los modulos disponibles para tu rol. Haz clic en cualquier opcion para navegar.</div>
+      </div>
+      <div class="feature-card">
+        <div class="fc-label">Zona 2</div>
+        <div class="fc-title">Encabezado (Header)</div>
+        <div class="fc-desc">Muestra la fecha y hora en tiempo real, tu nombre, tu rol, notificaciones y el boton de cerrar sesion.</div>
+      </div>
+      <div class="feature-card">
+        <div class="fc-label">Zona 3</div>
+        <div class="fc-title">Area de contenido</div>
+        <div class="fc-desc">Zona central donde se muestra la informacion y herramientas del modulo seleccionado.</div>
+      </div>
+    </div>
+
+    <div class="box info">
+      En dispositivos moviles o pantallas pequenas, el menu lateral se oculta y se accede mediante el boton de menu en la parte superior izquierda.
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <h2 style="background:var(--accent-lt);color:var(--accent);padding:.7rem 1rem;border-radius:8px;border:none;margin-bottom:1.5rem;">
+    Modulo: Alumno
+  </h2>
+
+  <!-- 6. INICIO ALUMNO -->
+  <section id="alumno-inicio">
+    <h2>6. Inicio (Dashboard del alumno)</h2>
+    <p>
+      Al iniciar sesion, el alumno accede a su <strong>dashboard principal</strong>, donde se muestran
+      todas las materias en las que esta inscrito con un resumen de su situacion academica.
+    </p>
+
+    <h3>Informacion mostrada por materia</h3>
+    <ul>
+      <li><strong>Nombre de la materia</strong> y grupo</li>
+      <li><strong>Nombre del profesor</strong> asignado</li>
+      <li><strong>Horario</strong> de clases (ej. Lun-Mie 08:00-10:00)</li>
+      <li><strong>Contadores de asistencia:</strong> presencias, faltas y retardos acumulados</li>
+      <li><strong>Estado de hoy:</strong> badge que indica si ya registraste tu asistencia</li>
+    </ul>
+
+    <h3>Boton de registro de asistencia</h3>
+    <p>Cada materia muestra un boton de asistencia cuyo estado depende del horario actual:</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Estado del boton</th><th>Significado</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="tag tag-blue">Registrar asistencia</span></td><td>Estas dentro del horario de clase. Puedes registrarte.</td></tr>
+          <tr><td><span class="tag tag-yellow">Fuera de horario</span></td><td>La clase no esta activa en este momento.</td></tr>
+          <tr><td><span class="tag tag-green">Ya registrado</span></td><td>Tu asistencia de hoy ya fue marcada.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="box warning">
+      El boton de asistencia solo se activa <strong>durante el horario de la clase</strong>. Asegurate de registrarte mientras estas en sesion. No es posible registrar asistencias fuera de ese intervalo de tiempo.
+    </div>
+  </section>
+
+  <!-- 7. ASISTENCIA ALUMNO -->
+  <section id="alumno-asistencia">
+    <h2>7. Historial de asistencia</h2>
+    <p>
+      En el menu <strong>"Asistencia"</strong> puedes consultar el historial completo de tus asistencias
+      en todas las materias.
+    </p>
+
+    <h3>Como consultar tu historial</h3>
+    <ol class="steps">
+      <li><span>En el menu lateral, haz clic en <strong>"Asistencia"</strong>.</span></li>
+      <li><span>Selecciona el <strong>rango de fechas</strong> que deseas consultar.</span></li>
+      <li><span>Se mostrara una tabla con cada registro: fecha, materia y estado.</span></li>
+      <li><span>Usa los controles de paginacion para navegar entre paginas.</span></li>
+    </ol>
+
+    <h3>Estados de asistencia</h3>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="fc-label" style="color:var(--success);">Presente</div>
+        <div class="fc-title">Asistencia registrada</div>
+        <div class="fc-desc">Asististe puntualmente a la clase.</div>
+      </div>
+      <div class="feature-card">
+        <div class="fc-label" style="color:var(--warning);">Retardo</div>
+        <div class="fc-title">Llegada tarde</div>
+        <div class="fc-desc">Llegaste despues del horario de inicio. El profesor lo registro como retardo.</div>
+      </div>
+      <div class="feature-card">
+        <div class="fc-label" style="color:var(--danger);">Falta</div>
+        <div class="fc-title">Ausencia</div>
+        <div class="fc-desc">No se registro asistencia para esa sesion.</div>
+      </div>
+    </div>
+
+    <div class="box danger">
+      Si tus <strong>faltas superan el 25%</strong> del total de clases en cualquier materia, el sistema mostrara una <strong>alerta de riesgo</strong>. Revisa tus justificantes en el modulo de Reportes.
+    </div>
+  </section>
+
+  <!-- 8. CALIFICACIONES ALUMNO -->
+  <section id="alumno-calificaciones">
+    <h2>8. Calificaciones</h2>
+    <p>
+      En el menu <strong>"Calificaciones"</strong> puedes ver tus notas parciales y final
+      por cada materia inscrita.
+    </p>
+
+    <h3>Estructura de calificaciones</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Componente</th><th>Descripcion</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Parcial 1</td><td>Primera evaluacion parcial (escala 0-10)</td></tr>
+          <tr><td>Parcial 2</td><td>Segunda evaluacion parcial (escala 0-10)</td></tr>
+          <tr><td>Parcial 3</td><td>Tercera evaluacion parcial (escala 0-10)</td></tr>
+          <tr><td>Final</td><td>Examen final (escala 0-10)</td></tr>
+          <tr><td><strong>Promedio</strong></td><td>Calculado automaticamente a partir de los 4 componentes</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Indicadores visuales</h3>
+    <ul>
+      <li>Calificacion <strong>mayor o igual a 6.0</strong> se muestra en <span style="color:var(--success);font-weight:600;">verde</span> (aprobado)</li>
+      <li>Calificacion <strong>menor a 6.0</strong> se muestra en <span style="color:var(--danger);font-weight:600;">rojo</span> (reprobado)</li>
+    </ul>
+
+    <div class="box info">
+      Recibiras una <strong>notificacion</strong> automatica en el sistema cada vez que tu profesor registre o actualice tus calificaciones.
+    </div>
+  </section>
+
+  <!-- 9. REPORTES ALUMNO -->
+  <section id="alumno-reportes">
+    <h2>9. Reportes y justificantes</h2>
+    <p>
+      El modulo de <strong>Reportes</strong> te permite enviar justificantes de ausencias u otras solicitudes
+      a tu profesor o al administrador.
+    </p>
+
+    <h3>Como enviar un reporte</h3>
+    <ol class="steps">
+      <li><span>Ve a <strong>"Reportes"</strong> en el menu lateral.</span></li>
+      <li><span>Haz clic en el boton <strong>"Nuevo reporte"</strong>.</span></li>
+      <li><span>Escribe un <strong>titulo</strong> descriptivo (ej. "Justificante medico — 3 mayo").</span></li>
+      <li><span>Agrega una <strong>descripcion detallada</strong> con el motivo de tu ausencia o solicitud.</span></li>
+      <li><span>Haz clic en <strong>"Enviar"</strong>. El reporte quedara en estado <span class="tag tag-yellow">Pendiente</span>.</span></li>
+    </ol>
+
+    <h3>Estados de un reporte</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Estado</th><th>Significado</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tag tag-yellow">Pendiente</span></td><td>El reporte fue enviado y esta en revision.</td></tr>
+          <tr><td><span class="tag tag-green">Aprobado</span></td><td>El profesor o administrador acepto tu justificante.</td></tr>
+          <tr><td><span class="tag tag-red">Rechazado</span></td><td>El reporte fue revisado y no fue aceptado.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="box info">
+      El modulo <strong>"Reporte de Lectura"</strong> funciona de la misma manera, pero esta destinado exclusivamente para reportes de actividades de lectura asignadas por el profesor.
+    </div>
+  </section>
+
+  <!-- 10. HORARIO ALUMNO -->
+  <section id="alumno-horario">
+    <h2>10. Horario de clases</h2>
+    <p>
+      En <strong>"Horario"</strong> puedes visualizar tu carga academica en una cuadricula semanal
+      tipo calendario, de lunes a viernes.
+    </p>
+
+    <h3>Como leer el horario</h3>
+    <ul>
+      <li>El eje vertical representa las <strong>horas del dia</strong> (de 7:00 a 21:00).</li>
+      <li>El eje horizontal representa los <strong>dias de la semana</strong>.</li>
+      <li>Cada <strong>bloque de color</strong> representa una materia con su horario.</li>
+      <li>El dia actual se resalta con un fondo azul claro.</li>
+      <li>Al pasar el cursor sobre un bloque, se muestra el nombre completo y datos del profesor.</li>
+    </ul>
+
+    <div class="box info">
+      El horario es de solo lectura. Si detectas un error en los dias u horarios de alguna materia, comunicalo al administrador.
+    </div>
+  </section>
+
+  <!-- 11. EVALUACION PROFESORES -->
+  <section id="alumno-evaluacion">
+    <h2>11. Evaluacion de profesores</h2>
+    <p>
+      El sistema permite a los alumnos <strong>evaluar el desempeno de sus profesores</strong>
+      al final del periodo.
+    </p>
+
+    <h3>Como realizar una evaluacion</h3>
+    <ol class="steps">
+      <li><span>Ve a <strong>"Evaluacion de Profesores"</strong> en el menu lateral.</span></li>
+      <li><span>Veras la lista de profesores de tus materias inscritas.</span></li>
+      <li><span>Los profesores que <strong>aun no has evaluado</strong> muestran un boton activo.</span></li>
+      <li><span>Haz clic en <strong>"Evaluar"</strong> para abrir el formulario de evaluacion.</span></li>
+      <li><span>Completa todos los campos solicitados y haz clic en <strong>"Enviar evaluacion"</strong>.</span></li>
+    </ol>
+
+    <div class="box warning">
+      Cada profesor solo puede ser evaluado <strong>una vez por materia</strong>. Una vez enviada, la evaluacion no puede modificarse.
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <h2 style="background:#f0fdf4;color:#15803d;padding:.7rem 1rem;border-radius:8px;border:none;margin-bottom:1.5rem;">
+    Modulo: Profesor
+  </h2>
+
+  <!-- 12. GESTION DE ASISTENCIAS PROFESOR -->
+  <section id="prof-asistencias">
+    <h2>12. Gestion de asistencias</h2>
+    <p>
+      Los profesores pueden marcar la asistencia de sus alumnos para cualquier sesion de sus materias.
+    </p>
+
+    <h3>Como registrar asistencias</h3>
+    <ol class="steps">
+      <li><span>Ve a <strong>"Gestion de Asistencias"</strong> en el menu lateral.</span></li>
+      <li><span>Selecciona la <strong>materia</strong> de la lista desplegable.</span></li>
+      <li><span>Selecciona la <strong>fecha</strong> de la sesion a registrar.</span></li>
+      <li><span>El sistema cargara la lista completa de alumnos inscritos.</span></li>
+      <li><span>Para cada alumno, marca su estado: <span class="tag tag-green">Presente</span>, <span class="tag tag-yellow">Retardo</span> o <span class="tag tag-red">Falta</span>.</span></li>
+      <li><span>Opcionalmente usa los botones <strong>"Marcar todos presente"</strong> o <strong>"Marcar todos falta"</strong> para acciones masivas.</span></li>
+      <li><span>Haz clic en <strong>"Guardar asistencias"</strong> para confirmar el registro.</span></li>
+    </ol>
+
+    <div class="box success">
+      Los cambios se guardan en bloque para mayor eficiencia. Una vez guardadas, las asistencias quedan disponibles de inmediato para que los alumnos las consulten.
+    </div>
+
+    <h3>Historial de asistencias</h3>
+    <p>
+      En <strong>"Historial de Asistencias"</strong> puedes revisar registros anteriores de todas
+      tus sesiones, filtrados por materia y fecha.
+    </p>
+  </section>
+
+  <!-- 13. GESTION DE CALIFICACIONES PROFESOR -->
+  <section id="prof-calificaciones">
+    <h2>13. Gestion de calificaciones</h2>
+    <p>
+      Desde este modulo el profesor ingresa y actualiza las calificaciones de los alumnos en sus materias.
+    </p>
+
+    <h3>Como ingresar calificaciones</h3>
+    <ol class="steps">
+      <li><span>Ve a <strong>"Gestion de Calificaciones"</strong> en el menu lateral.</span></li>
+      <li><span>Selecciona la <strong>materia</strong> usando los botones de seleccion en la parte superior.</span></li>
+      <li><span>El sistema cargara una tabla con todos los alumnos inscritos.</span></li>
+      <li><span>Para cada alumno, ingresa las notas en los campos: <strong>Parcial 1, Parcial 2, Parcial 3</strong> y <strong>Final</strong> (escala 0-10).</span></li>
+      <li><span>El campo <strong>"Promedio"</strong> se calcula automaticamente al ingresar todas las notas.</span></li>
+      <li><span>Una vez revisadas todas las notas, haz clic en <strong>"Guardar calificaciones"</strong>.</span></li>
+    </ol>
+
+    <div class="box info">
+      Al guardar, el sistema envia automaticamente una <strong>notificacion</strong> a cada alumno de esa materia informandoles que sus calificaciones han sido actualizadas.
+    </div>
+
+    <div class="box warning">
+      Las calificaciones deben estar en el rango <strong>0 a 10</strong>. Se admiten decimales (ej. 7.5). Valores fuera de rango seran rechazados por el sistema.
+    </div>
+  </section>
+
+  <!-- 14. GESTION DE REPORTES PROFESOR -->
+  <section id="prof-reportes">
+    <h2>14. Gestion de reportes</h2>
+    <p>
+      El modulo de <strong>"Gestion de Reportes"</strong> permite al profesor revisar y resolver
+      las solicitudes o justificantes enviados por sus alumnos.
+    </p>
+
+    <h3>Como atender un reporte</h3>
+    <ol class="steps">
+      <li><span>Ve a <strong>"Gestion de Reportes"</strong> en el menu.</span></li>
+      <li><span>Veras la lista de reportes pendientes con: nombre del alumno, titulo, descripcion y fecha de envio.</span></li>
+      <li><span>Revisa el contenido del reporte.</span></li>
+      <li><span>Selecciona la accion: <span class="tag tag-green">Aprobar</span> o <span class="tag tag-red">Rechazar</span>.</span></li>
+      <li><span>El alumno recibira una notificacion con el resultado de su solicitud.</span></li>
+    </ol>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <h2 style="background:#fef9c3;color:#854d0e;padding:.7rem 1rem;border-radius:8px;border:none;margin-bottom:1.5rem;">
+    Modulo: Administrador
+  </h2>
+
+  <!-- 15. GESTION DE USUARIOS -->
+  <section id="admin-usuarios">
+    <h2>15. Gestion de usuarios</h2>
+    <p>
+      El administrador puede crear, editar y eliminar usuarios del sistema desde el modulo
+      <strong>"Gestion de Usuarios"</strong>.
+    </p>
+
+    <h3>Crear un nuevo usuario</h3>
+    <ol class="steps">
+      <li><span>Ve a <strong>"Gestion de Usuarios"</strong> en el panel de administracion.</span></li>
+      <li><span>Haz clic en el boton <strong>"Nuevo usuario"</strong> (esquina superior derecha).</span></li>
+      <li><span>Completa los campos <strong>comunes</strong>: Nombre completo, Correo electronico, Contrasena temporal, Rol.</span></li>
+      <li><span>Dependiendo del rol seleccionado, apareceran campos adicionales:</span></li>
+    </ol>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Rol</th><th>Campos adicionales requeridos</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="tag tag-blue">Alumno</span></td>
+            <td>Matricula (obligatoria), Carrera, Semestre</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-green">Profesor</span></td>
+            <td>Numero de empleado (obligatorio), Departamento</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-yellow">Administrador</span></td>
+            <td>Sin campos adicionales</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ol class="steps" start="5">
+      <li><span>Haz clic en <strong>"Guardar"</strong>. El nuevo usuario podra iniciar sesion de inmediato con sus credenciales.</span></li>
+    </ol>
+
+    <h3>Buscar y filtrar usuarios</h3>
+    <ul>
+      <li>Usa la <strong>barra de busqueda</strong> para buscar por nombre o correo electronico.</li>
+      <li>Usa el <strong>filtro de rol</strong> para mostrar solo alumnos, profesores o administradores.</li>
+      <li>La lista muestra 10 usuarios por pagina; usa la paginacion para navegar.</li>
+    </ul>
+
+    <h3>Editar un usuario</h3>
+    <p>Haz clic en el icono de edicion junto al usuario. Se abrira el mismo formulario con los datos actuales para modificar.</p>
+
+    <h3>Eliminar / desactivar un usuario</h3>
+    <p>Haz clic en el icono de eliminar. El sistema desactiva la cuenta del usuario, quien perdera el acceso de forma inmediata.</p>
+
+    <div class="box danger">
+      Esta accion no puede deshacerse facilmente. Verifica que el usuario correcto este seleccionado antes de confirmar la eliminacion.
+    </div>
+  </section>
+
+  <!-- 16. GESTION DE MATERIAS -->
+  <section id="admin-materias">
+    <h2>16. Gestion de materias</h2>
+    <p>
+      Desde <strong>"Gestion de Materias"</strong> el administrador gestiona el catalogo de materias,
+      asigna profesores e inscribe alumnos.
+    </p>
+
+    <h3>Crear una nueva materia</h3>
+    <ol class="steps">
+      <li><span>Ve a <strong>"Gestion de Materias"</strong>.</span></li>
+      <li><span>Haz clic en <strong>"Nueva materia"</strong>.</span></li>
+      <li><span>Completa: <strong>Nombre</strong> de la materia, <strong>Grupo</strong> y <strong>Horario</strong>.<br>
+        <small>Formato de horario: <code>Lun-Mie 08:00-10:00</code> (dias seguidos de guion, horas en 24 h separadas por guion).</small>
+      </span></li>
+      <li><span>Selecciona el <strong>profesor</strong> asignado desde la lista desplegable.</span></li>
+      <li><span>Busca y selecciona los <strong>alumnos</strong> a inscribir (seleccion multiple).</span></li>
+      <li><span>Haz clic en <strong>"Guardar"</strong>.</span></li>
+    </ol>
+
+    <h3>Formato de horario</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Abreviatura</th><th>Dia</th></tr></thead>
+        <tbody>
+          <tr><td><code>Lun</code></td><td>Lunes</td></tr>
+          <tr><td><code>Mar</code></td><td>Martes</td></tr>
+          <tr><td><code>Mie</code></td><td>Miercoles</td></tr>
+          <tr><td><code>Jue</code></td><td>Jueves</td></tr>
+          <tr><td><code>Vie</code></td><td>Viernes</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Ejemplos validos: <code>Lun-Mie 08:00-10:00</code> &nbsp;|&nbsp; <code>Mar-Jue 14:00-16:00</code> &nbsp;|&nbsp; <code>Vie 07:00-10:00</code></p>
+
+    <h3>Editar o eliminar una materia</h3>
+    <p>Usa los iconos de edicion y eliminacion en la tabla de materias. Al editar tambien puedes agregar o quitar alumnos inscritos.</p>
+  </section>
+
+  <!-- 17. EVALUACIONES ADMIN -->
+  <section id="admin-evaluaciones">
+    <h2>17. Evaluaciones de profesores</h2>
+    <p>
+      En <strong>"Evaluaciones"</strong> el administrador puede consultar todas las evaluaciones que
+      los alumnos han enviado sobre sus profesores, para monitorear el desempeno docente.
+    </p>
+    <ul>
+      <li>Se muestra el listado de evaluaciones con: alumno evaluador, profesor evaluado, materia y contenido.</li>
+      <li>Esta informacion es de solo lectura para los profesores. Solo el administrador tiene acceso.</li>
+    </ul>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- 18. NOTIFICACIONES -->
+  <section id="notificaciones">
+    <h2>18. Notificaciones</h2>
+    <p>
+      El sistema cuenta con un <strong>sistema de notificaciones en tiempo real</strong> accesible
+      desde el icono de campana en el encabezado.
+    </p>
+
+    <h3>Cuando recibes notificaciones?</h3>
+    <ul>
+      <li>Cuando tu profesor <strong>registra o actualiza calificaciones</strong> (como alumno).</li>
+      <li>Cuando un reporte que enviaste fue <strong>aprobado o rechazado</strong>.</li>
+      <li>Cuando el administrador o profesor genera un aviso manual para tu grupo.</li>
+    </ul>
+
+    <h3>Como usar las notificaciones</h3>
+    <ol class="steps">
+      <li><span>El icono de campana muestra un contador con las notificaciones no leidas.</span></li>
+      <li><span>Haz clic en la campana para abrir el panel de notificaciones.</span></li>
+      <li><span>Cada notificacion muestra el mensaje, la fecha y hora.</span></li>
+      <li><span>Haz clic en una notificacion para marcarla como leida y, si tiene enlace, navegar a la seccion relacionada.</span></li>
+    </ol>
+  </section>
+
+  <!-- 19. PERFIL Y CONTRASENA -->
+  <section id="perfil">
+    <h2>19. Perfil y cambio de contrasena</h2>
+
+    <h3>Ver mi perfil</h3>
+    <p>
+      En <strong>"Perfil"</strong> puedes consultar tu informacion personal registrada en el sistema:
+      nombre completo, correo electronico, matricula/numero de empleado, carrera/departamento,
+      semestre y rol asignado. Esta informacion es de solo lectura; para modificarla, contacta al administrador.
+    </p>
+
+    <h3>Cambiar contrasena</h3>
+    <ol class="steps">
+      <li><span>Ve a <strong>"Cambiar Clave"</strong> en el menu lateral.</span></li>
+      <li><span>Ingresa tu <strong>contrasena actual</strong> para verificar tu identidad.</span></li>
+      <li><span>Escribe tu <strong>nueva contrasena</strong>.</span></li>
+      <li><span>Confirmala en el campo de verificacion.</span></li>
+      <li><span>Haz clic en <strong>"Guardar"</strong>.</span></li>
+    </ol>
+
+    <h3>Requisitos de contrasena</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Requisito</th><th>Ejemplo</th></tr></thead>
+        <tbody>
+          <tr><td>Minimo 8 caracteres</td><td><code>M1C0ntr4!</code></td></tr>
+          <tr><td>Al menos una letra mayuscula</td><td><code>MiContra1!</code></td></tr>
+          <tr><td>Al menos una letra minuscula</td><td><code>Micontra1!</code></td></tr>
+          <tr><td>Al menos un numero</td><td><code>Miconta1!</code></td></tr>
+          <tr><td>Al menos un caracter especial</td><td><code>Miconta1!</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 20. LINEAMIENTOS -->
+  <section id="lineamientos">
+    <h2>20. Lineamientos academicos</h2>
+    <p>
+      En el modulo <strong>"Lineamientos"</strong> puedes consultar las politicas y reglamentos
+      academicos de la institucion, incluyendo:
+    </p>
+    <ul>
+      <li>Politicas de asistencia y limites de faltas permitidas.</li>
+      <li>Criterios de evaluacion y escala de calificaciones.</li>
+      <li>Procedimientos para solicitar justificantes.</li>
+      <li>Otros reglamentos institucionales.</li>
+    </ul>
+    <p>Este modulo es de solo lectura y esta disponible para todos los roles.</p>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- 21. PREGUNTAS FRECUENTES -->
+  <section id="preguntas">
+    <h2>21. Preguntas frecuentes (FAQ)</h2>
+
+    <h3>No puedo iniciar sesion, que hago?</h3>
+    <p>Verifica que tu correo y contrasena sean correctos. Si olvidaste tu contrasena, comunicate con el administrador para que te asigne una nueva. Si tu cuenta fue desactivada, tambien deberas contactar al administrador.</p>
+
+    <h3>El boton de asistencia esta desactivado</h3>
+    <p>El boton solo se activa <strong>durante el horario de clase</strong> de esa materia. Revisa el horario en el modulo "Horario". Si el horario es incorrecto, comunicalo al administrador.</p>
+
+    <h3>No veo mis calificaciones</h3>
+    <p>Las calificaciones son ingresadas por el profesor. Si no aparecen aun, significa que el profesor todavia no las ha registrado. Recibiras una notificacion cuando esten disponibles.</p>
+
+    <h3>Envie un reporte pero no veo respuesta</h3>
+    <p>Los reportes quedan en estado <span class="tag tag-yellow">Pendiente</span> hasta que el profesor o administrador los atienda. Puedes revisar el estado actual en cualquier momento en el modulo "Reportes".</p>
+
+    <h3>Puedo modificar mi asistencia ya registrada?</h3>
+    <p>Los alumnos no pueden modificar ni eliminar asistencias ya registradas. Si hay un error, deberas comunicarlo a tu profesor para que realice la correccion.</p>
+
+    <h3>Puedo evaluar a un profesor mas de una vez?</h3>
+    <p>No. Solo se permite <strong>una evaluacion por profesor por materia</strong>. Si ya evaluaste a un profesor, el boton de evaluacion aparecera desactivado.</p>
+
+    <h3>Como se si mi reporte fue aprobado?</h3>
+    <p>Recibiras una <strong>notificacion en el sistema</strong> cuando el estado de tu reporte cambie. Tambien puedes verificarlo directamente en el modulo "Reportes".</p>
+
+    <h3>No puedo cambiar mi informacion de perfil</h3>
+    <p>La informacion del perfil (nombre, carrera, matricula, etc.) solo puede ser modificada por un administrador. Comunicate con el si necesitas una correccion.</p>
+
+    <div class="box info">
+      Para cualquier otra duda o problema tecnico, comunicate con el area de soporte o con el administrador del sistema.
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <footer style="text-align:center;color:var(--muted);font-size:.82rem;padding:1.5rem 0 2rem;">
+    <p>Sistema Universitario — Manual de Usuario v1.0 &nbsp;|&nbsp; Mayo 2026</p>
+    <p style="margin-top:.3rem;">Este documento es de uso interno. Para actualizar su contenido, contacte al administrador del sistema.</p>
+  </footer>
+
+</main>
+
+<script>
+  const links = document.querySelectorAll('nav#sidebar a');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'));
+        const id = '#' + entry.target.id;
+        const active = document.querySelector('nav#sidebar a[href="' + id + '"]');
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  document.querySelectorAll('section[id]').forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>
